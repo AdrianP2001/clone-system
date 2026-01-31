@@ -1,0 +1,7 @@
+{
+  "name": "Ecuafact Pro - Sistema de Facturación Electrónica",
+  "description": "Una plataforma integral para la gestión de facturación electrónica en Ecuador, cumpliendo con los estándares del SRI, incluyendo gestión de clientes, productos, y analítica avanzada impulsada por IA.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

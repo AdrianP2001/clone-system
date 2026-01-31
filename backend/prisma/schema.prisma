@@ -1,0 +1,229 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------
+// 1. MODELO EMPRESA (El corazón del SaaS)
+// ---------------------------------------------------------
+model Business {
+  id                   String   @id @default(uuid())
+  
+  // Datos de Identificación
+  ruc                  String   @unique // El RUC de la empresa sigue siendo único globalmente
+  name                 String
+  tradename            String?
+  address              String
+  branchAddress        String?
+  phone                String?
+  email                String
+  website              String?
+  logo                 String?
+  
+  // Configuración Tributaria
+  category             String?  // Obligado/No obligado
+  regime               String?  // RIMPE, GENERAL
+  isAccountingObliged  Boolean  @default(false)
+  specialTaxpayerCode  String?
+  withholdingAgentCode String?
+  isProduction         Boolean  @default(false)
+  
+  // Configuración Técnica
+  themeColor           String   @default("#2563eb")
+  establishmentCode    String   @default("001")
+  emissionPointCode    String   @default("001")
+  taxpayerType         String   @default("EMPRESA")
+  notificationSettings Json?
+
+  // --- CAMPOS SAAS (NUEVOS) ---
+  plan                 String   @default("FREE") // FREE, PRO, ENTERPRISE
+  isActive             Boolean  @default(true)   // Para bloquear impagos
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // RELACIONES (Todo lo que pertenece a esta empresa)
+  users     User[]
+  clients   Client[]
+  products  Product[]
+  documents Document[]
+  sequences Sequence[]
+}
+
+// ---------------------------------------------------------
+// 2. MODELO USUARIO (Jerarquía y Acceso)
+// ---------------------------------------------------------
+model User {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  password   String
+  role       String    @default("VENDEDOR") // SUPERADMIN, ADMIN_NEGOCIO, VENDEDOR, CONTADOR
+  
+  // SAAS: El usuario pertenece a una empresa
+  // (Es opcional '?' porque el SUPERADMIN podría no tener empresa)
+  businessId String?   
+  business   Business? @relation(fields: [businessId], references: [id])
+  
+  documents  Document[]
+}
+
+// ---------------------------------------------------------
+// 3. MODELOS DE DATOS (Aislados por BusinessId)
+// ---------------------------------------------------------
+
+model Client {
+  id        String   @id @default(uuid())
+  ruc       String   
+  name      String
+  email     String?
+  address   String?
+  phone     String?
+  type      String   // CLIENTE, PROVEEDOR, AMBOS
+  createdAt DateTime @default(now())
+
+  // SAAS: Pertenece a una empresa
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  // IMPORTANTE: El RUC ya no es @unique global.
+  // Es único SOLO dentro de la misma empresa.
+  @@unique([ruc, businessId]) 
+}
+
+model Product {
+  id               String   @id @default(uuid())
+  code             String
+  description      String
+  price            Float
+  wholesalePrice   Float    @default(0)
+  distributorPrice Float    @default(0)
+  taxRate          Int      @default(15)
+  stock            Int      @default(0)
+  minStock         Int      @default(0)
+  imageUrl         String?
+  category         String?
+  type             String   // BIEN, SERVICIO
+
+  // SAAS: Pertenece a una empresa
+  businessId       String
+  business         Business @relation(fields: [businessId], references: [id])
+
+  items              InvoiceItem[]
+  inventoryMovements InventoryMovement[]
+
+  // El código de producto es único SOLO para esa empresa
+  @@unique([code, businessId])
+}
+
+model Document {
+  id                       String    @id @default(uuid())
+  type                     String    // 01: Factura, 04: Nota Crédito, etc.
+  number                   String    // Secuencial (001-001-000000001)
+  accessKey                String?   // Clave de Acceso SRI (49 dígitos)
+  issueDate                DateTime
+  
+  // Datos del Cliente snapshot (para no romper si el cliente cambia)
+  entityName               String
+  entityRuc                String?
+  entityEmail              String?
+  entityPhone              String?
+  entityAddress            String?
+  
+  total                    Float
+  status                   String    // BORRADOR, GENERADO, FIRMADO, AUTORIZADO
+  paymentStatus            String    // PENDIENTE, PAGADO
+  createdAt                DateTime  @default(now())
+  
+  additionalInfo           String?
+  authorizedXml            String?
+  creditNoteReason         String?
+  paymentMethod            String?   // 01: Sin utilización sist. financiero, 19: Tarjeta, etc.
+  
+  // Documentos relacionados (Notas de crédito)
+  relatedDocumentAccessKey String?
+  relatedDocumentDate      DateTime?
+  relatedDocumentNumber    String?
+  
+  dueDate                  DateTime?
+  source                   String?   @default("LOCAL") // WEB, API, IMPORTADO
+  retentionTaxes           Json?
+  
+  // Sustento tributario (Retenciones)
+  sustainingDocDate        DateTime?
+  sustainingDocNumber      String?
+  sustainingDocTotal       Float?
+  sustainingDocType        String?
+  taxPeriod                String?
+
+  // Relaciones
+  items              InvoiceItem[]
+  inventoryMovements InventoryMovement[]
+  
+  userId             String?
+  user               User?     @relation(fields: [userId], references: [id])
+
+  // SAAS: Pertenece a una empresa
+  businessId         String
+  business           Business  @relation(fields: [businessId], references: [id])
+
+  @@unique([accessKey]) // La clave de acceso SRI sí es única globalmente (por naturaleza)
+  @@index([issueDate])
+  @@index([entityRuc])
+  @@index([status])
+  @@index([businessId]) // Índice para filtrar rápido por empresa
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  documentId  String
+  productId   String
+  description String
+  quantity    Float
+  unitPrice   Float
+  discount    Float    @default(0)
+  taxRate     Int
+  total       Float
+  
+  document    Document @relation(fields: [documentId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Sequence {
+  id                String   @id @default(uuid())
+  type              String   // 'INVOICE', 'CREDIT_NOTE', etc.
+  establishmentCode String
+  emissionPointCode String
+  currentValue      Int
+  updatedAt         DateTime @updatedAt
+
+  // SAAS: Cada empresa tiene sus propios contadores de facturas
+  businessId        String
+  business          Business @relation(fields: [businessId], references: [id])
+
+  @@unique([type, establishmentCode, emissionPointCode, businessId])
+}
+
+model InventoryMovement {
+  id            String   @id @default(uuid())
+  
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+  
+  documentId    String?
+  document      Document? @relation(fields: [documentId], references: [id])
+  
+  type          String   // 'VENTA', 'COMPRA', 'DEVOLUCION', 'AJUSTE'
+  quantity      Int      
+  previousStock Int
+  newStock      Int
+  createdAt     DateTime @default(now())
+  
+  // No necesitamos businessId aquí explícitamente porque ya está en Product y Document,
+  // pero podríamos agregarlo si quisieras reportes muy rápidos sin joins.
+}
