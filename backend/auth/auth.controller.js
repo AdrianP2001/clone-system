@@ -55,6 +55,13 @@ const login = async (req, res) => {
             if (!business || !business.isActive) {
                 return res.status(403).json({ message: 'Su empresa está inactiva. Contacte a administración.' });
             }
+
+            // Verificar vigencia de suscripción
+            if (business.subscriptionEnd && new Date() > new Date(business.subscriptionEnd)) {
+                console.error('⛔ Acceso denegado: Suscripción vencida.');
+                return res.status(403).json({ message: 'Su suscripción ha vencido. Por favor realice el pago para continuar.' });
+            }
+
             businessFeatures = business.features || {};
         }
 

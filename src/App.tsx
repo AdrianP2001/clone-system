@@ -23,6 +23,8 @@ import { MOCK_CLIENTS, MOCK_PRODUCTS } from '../constants';
 import Login from './Login';
 import ClientLogin from './ClientLogin';
 import ClientDashboard from './ClientDashboard';
+import SubscriptionManager from './SubscriptionManager';
+import AdminUsers from './AdminUsers';
 import { client } from './api/client';
 
 // URL del backend definida en variable de entorno o fallback
@@ -33,6 +35,7 @@ const App: React.FC = () => {
   // ESTADO DE SEGURIDAD: Verificamos si existe el token al cargar
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
 
   // --- ESTADO DEL MODO DEMO ---
   // Por defecto false (Modo Producción).
@@ -348,6 +351,10 @@ const App: React.FC = () => {
       case 'profitability': return <ProfitabilityAnalysis products={products} documents={documents} onNotify={showNotify} />;
       case 'notifications': return <NotificationSettingsComponent settings={notificationSettings} onSave={handleSaveNotificationSettings} onNotify={showNotify} />;
       case 'reports': return <Reports documents={documents} businessInfo={businessInfo} />;      case 'ai-assistant': return <AIAssistant businessInfo={businessInfo} />;
+      // Pasamos el ID seleccionado al Manager de Suscripciones
+      case 'admin-subscriptions': return <SubscriptionManager businessId={selectedBusinessId} onNotify={showNotify} />;
+      // Pasamos la función para navegar a suscripciones
+      case 'admin-users': return <AdminUsers onManageSubscription={(id) => { setSelectedBusinessId(id); setActiveTab('admin-subscriptions'); }} />;
 
       
       case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} isDemoMode={isDemoMode}/>;
@@ -565,6 +572,18 @@ const App: React.FC = () => {
           <span className={`text-[10px] font-black uppercase tracking-widest ${isDemoMode ? 'text-orange-500' : 'text-emerald-600'}`}>
             {isDemoMode ? 'Modo Demo' : 'Modo Live'}
           </span>
+          <button
+            onClick={() => setActiveTab('admin-subscriptions')}
+            className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors"
+          >
+            Suscripciones
+          </button>
+          <button
+            onClick={() => setActiveTab('admin-users')}
+            className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors"
+          >
+            Usuarios
+          </button>
           <button
             onClick={() => setIsDemoMode(!isDemoMode)}
             className={`

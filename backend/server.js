@@ -857,7 +857,7 @@ app.post('/api/notifications/send-email', authenticate, async (req, res) => {
 // 1. Crear Nueva Empresa (Tenant)
 app.post('/api/admin/businesses', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
   try {
-    const { name, ruc, email, address, phone, plan, features } = req.body;
+    const { name, ruc, email, address, phone, plan, features, subscriptionEnd } = req.body;
     
     const existing = await prisma.business.findUnique({ where: { ruc } });
     if (existing) return res.status(400).json({ message: 'La empresa ya existe con este RUC' });
@@ -871,6 +871,9 @@ app.post('/api/admin/businesses', verifyToken, checkRole(['SUPERADMIN']), async 
         phone,
         plan: plan || 'BASIC',
         features: features || { inventory: true, accounting: false, billing: true }, // Permisos por defecto
+        subscriptionStart: new Date(),
+        subscriptionEnd: subscriptionEnd ? new Date(subscriptionEnd) : new Date(new Date().setMonth(new Date().getMonth() + 1)), // 1 mes por defecto
+        subscriptionStatus: 'ACTIVE',
         isActive: true,
         establishmentCode: '001',
         emissionPointCode: '001',
@@ -895,11 +898,45 @@ app.post('/api/admin/businesses', verifyToken, checkRole(['SUPERADMIN']), async 
   }
 });
 
+// 1.2 Obtener empresas con suscripciones por vencer (Superadmin)
+app.get('/api/admin/subscriptions/expiring', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30; // Default 30 días
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + days);
+
+    const expiringBusinesses = await prisma.business.findMany({
+      where: {
+        subscriptionEnd: {
+          gte: today,
+          lte: futureDate
+        },
+        isActive: true
+      },
+      select: {
+        id: true,
+        name: true,
+        ruc: true,
+        email: true,
+        plan: true,
+        subscriptionEnd: true,
+        subscriptionStatus: true
+      },
+      orderBy: { subscriptionEnd: 'asc' }
+    });
+
+    res.json(expiringBusinesses);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // 1.1 Actualizar Empresa y Permisos (Superadmin)
 app.put('/api/admin/businesses/:id', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { features, isActive, plan, ...data } = req.body;
+    const { features, isActive, plan, subscriptionEnd, subscriptionStatus, ...data } = req.body;
 
     const updatedBusiness = await prisma.business.update({
       where: { id },
@@ -907,7 +944,9 @@ app.put('/api/admin/businesses/:id', verifyToken, checkRole(['SUPERADMIN']), asy
         ...data,
         features, // Actualizar objeto de permisos/features
         isActive,
-        plan
+        plan,
+        subscriptionEnd: subscriptionEnd ? new Date(subscriptionEnd) : undefined,
+        subscriptionStatus
       }
     });
     res.json(updatedBusiness);
@@ -938,6 +977,167 @@ app.post('/api/admin/users', verifyToken, checkRole(['SUPERADMIN']), async (req,
     res.json({ success: true, user: { id: newUser.id, email: newUser.email, role: newUser.role, businessId: newUser.businessId } });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// 3. Listar todos los usuarios del sistema (Superadmin)
+app.get('/api/admin/users', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            ruc: true,
+            subscriptionEnd: true,
+            subscriptionStatus: true
+          }
+        }
+      },
+      orderBy: { email: 'asc' }
+    });
+    
+    // Sanitizar passwords antes de enviar
+    const safeUsers = users.map(u => {
+      const { password, ...userWithoutPass } = u;
+      return userWithoutPass;
+    });
+
+    res.json(safeUsers);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 4. Modificar tiempo de suscripción (Superadmin)
+// Permite sumar o restar días enviando { days: 30 } o { days: -7 }
+app.post('/api/admin/businesses/:id/subscription', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { days } = req.body; // Días a sumar (positivo) o restar (negativo)
+
+    if (days === undefined || typeof days !== 'number') {
+      return res.status(400).json({ message: 'Se requiere el campo "days" como número.' });
+    }
+
+    const business = await prisma.business.findUnique({ where: { id } });
+    if (!business) return res.status(404).json({ message: 'Empresa no encontrada' });
+
+    // Calcular nueva fecha
+    let currentEnd = business.subscriptionEnd ? new Date(business.subscriptionEnd) : new Date();
+    
+    // Lógica inteligente: Si la suscripción ya venció y estamos agregando tiempo, 
+    // reiniciamos el conteo desde HOY para no cobrar tiempo muerto.
+    if (days > 0 && currentEnd < new Date()) {
+      currentEnd = new Date();
+    }
+
+    const newEnd = new Date(currentEnd);
+    newEnd.setDate(newEnd.getDate() + days);
+
+    const updatedBusiness = await prisma.business.update({
+      where: { id },
+      data: {
+        subscriptionEnd: newEnd,
+        subscriptionStatus: newEnd > new Date() ? 'ACTIVE' : 'EXPIRED'
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Suscripción actualizada. Nueva fecha: ${newEnd.toLocaleDateString()}`,
+      business: updatedBusiness 
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
+// NUEVAS RUTAS PARA EL MÓDULO DE GESTIÓN (Usuarios y Suscripciones)
+// ============================================
+
+// 5. Obtener lista completa de usuarios con estado de empresa
+app.get('/api/users', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        businessId: true,
+        business: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
+            subscriptionEnd: true
+          }
+        }
+      }
+    });
+    res.json(users);
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error);
+    res.status(500).json({ message: 'Error interno al obtener usuarios' });
+  }
+});
+
+// 6. Agregar tiempo a la suscripción de una empresa
+app.post('/api/subscriptions/add-time', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { businessId, months } = req.body;
+
+    if (!businessId || months === undefined || months === null) {
+      return res.status(400).json({ message: 'Se requiere el ID de la empresa y la cantidad de meses (puede ser 0 o negativo).' });
+    }
+
+    const business = await prisma.business.findUnique({
+      where: { id: parseInt(businessId) }
+    });
+
+    if (!business) {
+      return res.status(404).json({ message: 'Empresa no encontrada.' });
+    }
+
+    // Calcular la nueva fecha de vencimiento
+    const now = new Date();
+    let currentEnd = business.subscriptionEnd ? new Date(business.subscriptionEnd) : now;
+    const monthsInt = parseInt(months);
+
+    // Lógica inteligente:
+    // Si agregamos tiempo (+), y estaba vencida, reiniciamos desde HOY.
+    // Si quitamos tiempo (-), respetamos la fecha actual para recortarla.
+    if (monthsInt > 0 && currentEnd < now) {
+      currentEnd = now;
+    }
+
+    // Sumar los meses
+    const newEndDate = new Date(currentEnd);
+    newEndDate.setMonth(newEndDate.getMonth() + monthsInt);
+
+    // Determinar estado activo automáticamente
+    const isActive = newEndDate > now;
+
+    const updatedBusiness = await prisma.business.update({
+      where: { id: parseInt(businessId) },
+      data: {
+        subscriptionEnd: newEndDate,
+        isActive: isActive 
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Suscripción actualizada correctamente.', 
+      subscriptionEnd: updatedBusiness.subscriptionEnd,
+      isActive: updatedBusiness.isActive
+    });
+
+  } catch (error) {
+    console.error('Error al agregar suscripción:', error);
+    res.status(500).json({ message: 'Error interno al actualizar la suscripción' });
   }
 });
 

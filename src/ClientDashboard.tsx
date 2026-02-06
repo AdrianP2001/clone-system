@@ -13,6 +13,7 @@ const ClientDashboard = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState<{ text: string; type: 'success' | 'error' | '' }>({ text: '', type: '' });
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'password'>('dashboard');
 
   const fetchDocuments = async () => {
     try {
@@ -118,8 +119,14 @@ const ClientDashboard = () => {
                 <h2 className="text-[#0d121b] dark:text-white text-lg font-bold leading-tight tracking-tight">FacturaPortal</h2>
               </div>
               <div className="hidden md:flex items-center gap-6">
-                <a className="text-[#135bec] text-sm font-semibold leading-normal border-b-2 border-[#135bec] pb-1" href="#">Dashboard</a>
-                <a className="text-[#4c669a] dark:text-slate-400 text-sm font-medium leading-normal hover:text-[#135bec] transition-colors" href="#">Facturas</a>
+                <button 
+                  className={`text-sm font-medium leading-normal transition-colors ${activeTab === 'dashboard' ? 'text-[#135bec] font-semibold border-b-2 border-[#135bec] pb-1' : 'text-[#4c669a] dark:text-slate-400 hover:text-[#135bec]'}`} 
+                  onClick={() => setActiveTab('dashboard')}
+                >Dashboard</button>
+                <button 
+                  className={`text-sm font-medium leading-normal transition-colors ${activeTab === 'password' ? 'text-[#135bec] font-semibold border-b-2 border-[#135bec] pb-1' : 'text-[#4c669a] dark:text-slate-400 hover:text-[#135bec]'}`} 
+                  onClick={() => setActiveTab('password')}
+                >Cambiar Contraseña</button>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -141,46 +148,48 @@ const ClientDashboard = () => {
 
         {/* Main Content */}
         <main className="max-w-[1280px] mx-auto px-4 md:px-10 lg:px-40 py-8">
-          {/* Summary Stats Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfd7e7] dark:border-slate-800 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium leading-normal">Total Facturas</p>
-                <span className="material-symbols-outlined text-[#135bec] bg-[#135bec]/10 p-2 rounded-lg">description</span>
+          {activeTab === 'dashboard' ? (
+            <>
+              {/* Summary Stats Section */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfd7e7] dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium leading-normal">Total Facturas</p>
+                    <span className="material-symbols-outlined text-[#135bec] bg-[#135bec]/10 p-2 rounded-lg">description</span>
+                  </div>
+                  <p className="text-[#0d121b] dark:text-white tracking-light text-3xl font-bold leading-tight">{stats.totalDocs}</p>
+                  <p className="text-[#07883b] text-sm font-medium flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[18px]">check_circle</span> Registradas
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfd7e7] dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium leading-normal">Total Compras</p>
+                    <span className="material-symbols-outlined text-[#135bec] bg-[#135bec]/10 p-2 rounded-lg">payments</span>
+                  </div>
+                  <p className="text-[#0d121b] dark:text-white tracking-light text-3xl font-bold leading-tight">${stats.totalAmount.toFixed(2)}</p>
+                  <p className="text-[#4c669a] text-sm font-medium flex items-center gap-1">
+                    Acumulado histórico
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfd7e7] dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium leading-normal">Pendientes</p>
+                    <span className="material-symbols-outlined text-[#135bec] bg-[#135bec]/10 p-2 rounded-lg">pending_actions</span>
+                  </div>
+                  <p className="text-[#0d121b] dark:text-white tracking-light text-3xl font-bold leading-tight">{stats.pendingDocs}</p>
+                  <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium">Por procesar o pagar</p>
+                </div>
               </div>
-              <p className="text-[#0d121b] dark:text-white tracking-light text-3xl font-bold leading-tight">{stats.totalDocs}</p>
-              <p className="text-[#07883b] text-sm font-medium flex items-center gap-1">
-                <span className="material-symbols-outlined text-[18px]">check_circle</span> Registradas
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfd7e7] dark:border-slate-800 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium leading-normal">Total Compras</p>
-                <span className="material-symbols-outlined text-[#135bec] bg-[#135bec]/10 p-2 rounded-lg">payments</span>
-              </div>
-              <p className="text-[#0d121b] dark:text-white tracking-light text-3xl font-bold leading-tight">${stats.totalAmount.toFixed(2)}</p>
-              <p className="text-[#4c669a] text-sm font-medium flex items-center gap-1">
-                 Acumulado histórico
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfd7e7] dark:border-slate-800 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium leading-normal">Pendientes</p>
-                <span className="material-symbols-outlined text-[#135bec] bg-[#135bec]/10 p-2 rounded-lg">pending_actions</span>
-              </div>
-              <p className="text-[#0d121b] dark:text-white tracking-light text-3xl font-bold leading-tight">{stats.pendingDocs}</p>
-              <p className="text-[#4c669a] dark:text-slate-400 text-sm font-medium">Por procesar o pagar</p>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Transactions Table Column */}
-            <div className="lg:col-span-2 flex flex-col gap-4">
+              {/* Transactions Table Column */}
+              <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between px-2">
                 <h2 className="text-[#0d121b] dark:text-white text-[22px] font-bold leading-tight tracking-tight">Mis Transacciones</h2>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-[#cfd7e7] dark:border-slate-800 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-[#f8f9fc] dark:bg-slate-800/50">
@@ -221,13 +230,55 @@ const ClientDashboard = () => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden flex flex-col divide-y divide-[#cfd7e7] dark:divide-slate-800">
+                  {loading ? (
+                    <div className="p-8 text-center text-slate-400">Cargando facturas...</div>
+                  ) : documents.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400">No se encontraron documentos.</div>
+                  ) : (
+                    documents.map((doc) => (
+                      <div key={doc.id} className="p-4 flex flex-col gap-3 hover:bg-[#135bec]/5 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-[#0d121b] dark:text-white">
+                              {doc.type === '01' ? 'Factura' : 'Nota Crédito'}
+                            </span>
+                            <span className="text-xs text-[#4c669a] dark:text-slate-400 font-medium">
+                              {doc.number}
+                            </span>
+                          </div>
+                          <span className="text-base font-bold text-[#0d121b] dark:text-white">
+                            ${doc.total.toFixed(2)}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-2">
+                          <span className="text-xs text-[#4c669a] dark:text-slate-400">
+                            {new Date(doc.issueDate).toLocaleDateString()}
+                          </span>
+                          <div className="flex gap-2">
+                            <button className="inline-flex items-center justify-center p-2 rounded-lg bg-[#135bec]/10 text-[#135bec] hover:bg-[#135bec] hover:text-white transition-all" title="Descargar PDF">
+                              <span className="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+                            </button>
+                            <button className="inline-flex items-center justify-center p-2 rounded-lg bg-[#135bec]/10 text-[#135bec] hover:bg-[#135bec] hover:text-white transition-all" title="Descargar XML">
+                              <span className="material-symbols-outlined text-[20px]">code</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
-
-            {/* Configuration Column */}
-            <div className="flex flex-col gap-4">
+            </>
+          ) : (
+            /* Configuration Column (Password) */
+            <div className="max-w-2xl mx-auto flex flex-col gap-4">
               <div className="px-2">
-                <h2 className="text-[#0d121b] dark:text-white text-[22px] font-bold leading-tight tracking-tight">Configuración</h2>
+                <h2 className="text-[#0d121b] dark:text-white text-[22px] font-bold leading-tight tracking-tight">Seguridad de la Cuenta</h2>
               </div>
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-[#cfd7e7] dark:border-slate-800 p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
@@ -293,7 +344,7 @@ const ClientDashboard = () => {
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </main>
         
         {/* Footer (Mini) */}

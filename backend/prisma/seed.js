@@ -33,6 +33,9 @@ async function main() {
         billing: true,
         reports: true 
       },
+      subscriptionStart: new Date(),
+      subscriptionEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // 1 año de suscripción
+      subscriptionStatus: 'ACTIVE',
       establishmentCode: '001',
       emissionPointCode: '001',
       isAccountingObliged: true,
@@ -82,6 +85,26 @@ async function main() {
   });
 
   console.log(`👤 Cliente Portal: ${client.identification} (Pass: ${client.identification})`);
+
+  // 4. Crear Usuario Super Admin (Dueño del SaaS)
+  const superAdminPass = await bcrypt.hash('superadmin123', 10);
+  
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@admin.com' },
+    update: {
+        password: superAdminPass,
+        role: 'SUPERADMIN',
+        businessId: null // El Super Admin no pertenece a una empresa específica
+    },
+    create: {
+      email: 'superadmin@admin.com',
+      password: superAdminPass,
+      role: 'SUPERADMIN',
+      businessId: null
+    },
+  });
+
+  console.log(`🦸 Super Admin: ${superAdmin.email} (Pass: superadmin123)`);
   console.log('✅ Datos de prueba insertados correctamente.');
 }
 
