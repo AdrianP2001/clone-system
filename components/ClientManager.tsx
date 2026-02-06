@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Client } from '../types';
 import { validateEcuadorianId, getEntityAvatarColor } from '../utils/validation';
@@ -7,18 +6,19 @@ interface ClientManagerProps {
   clients: Client[];
   setClients: React.Dispatch<React.SetStateAction<Client[]>>;
   onNotify: (msg: string, type?: any) => void;
+  isDemoMode: boolean; // <--- Prop recibida correctamente
 }
 
 // URL del backend
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
-const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNotify }) => {
+const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNotify, isDemoMode }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState<Partial<Client>>({ type: 'CLIENTE' });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'TODOS' | 'CLIENTE' | 'PROVEEDOR'>('TODOS');
-  
+
   // Estado de carga
   const [loading, setLoading] = useState(false);
 
@@ -62,18 +62,47 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
       return;
     }
 
+    // 1. LÓGICA MODO DEMO
+    if (isDemoMode) {
+      const fakeClient = {
+        ...formData,
+        id: editingClient ? editingClient.id : Math.random().toString(),
+        email: formData.email || '',
+        address: formData.address || '',
+        phone: formData.phone || '',
+        type: formData.type || 'CLIENTE'
+      } as Client;
+
+      if (editingClient) {
+        setClients(clients.map(c => c.id === editingClient.id ? fakeClient : c));
+        onNotify("Cliente actualizado (Modo Demo)");
+      } else {
+        setClients([fakeClient, ...clients]);
+        onNotify("Cliente creado (Modo Demo)");
+      }
+      setShowModal(false);
+      return; // 🛑 IMPORTANTE: Detenemos aquí para no llamar al backend
+    }
+
+    // 2. LÓGICA MODO LIVE (Backend)
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
       if (editingClient) {
         // ACTUALIZAR (PUT)
         const response = await fetch(`${API_URL}/api/clients/${editingClient.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(formData)
         });
-        
+
         if (!response.ok) throw new Error('Error al actualizar cliente');
-        
+
         const updatedClient = await response.json();
         setClients(clients.map(c => c.id === editingClient.id ? updatedClient : c));
         onNotify("Entidad actualizada correctamente en base de datos");
@@ -81,7 +110,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
         // CREAR (POST)
         const response = await fetch(`${API_URL}/api/clients`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             ...formData,
             email: formData.email || '',
@@ -111,19 +140,32 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
       onNotify("No se puede eliminar Consumidor Final", "error");
       return;
     }
-    if (confirm("¿Está seguro de eliminar esta entidad? Se borrará permanentemente de la base de datos.")) {
+
+    if (confirm("¿Está seguro de eliminar esta entidad?")) {
+      // 1. MODO DEMO
+      if (isDemoMode) {
+        setClients(clients.filter(c => c.id !== id));
+        onNotify("Entidad eliminada (Modo Demo)");
+        return;
+      }
+
+      // 2. MODO LIVE
       try {
-        const response = await fetch(`${API_URL}/api/clients/${id}`, { method: 'DELETE' });
+        const response = await fetch(`${API_URL}/api/clients/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
         if (!response.ok) throw new Error('Error al eliminar');
-        
+
         setClients(clients.filter(c => c.id !== id));
         onNotify("Entidad eliminada de la base de datos");
       } catch (error) {
         onNotify("Error al eliminar del servidor", "error");
       }
     }
-  };
+  }; // <--- AQUÍ TERMINA LA FUNCIÓN handleDelete
 
+  // --- AQUÍ EMPIEZA EL RENDERIZADO DEL COMPONENTE (ESTABA DENTRO DE handleDelete) ---
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       {/* Cards de Resumen */}
@@ -150,9 +192,9 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
         <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-            <input 
-              type="text" 
-              placeholder="Nombre o RUC..." 
+            <input
+              type="text"
+              placeholder="Nombre o RUC..."
               className="w-full md:w-80 bg-slate-50 p-4 pl-12 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-blue-500 transition-all"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -160,7 +202,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
           </div>
           <div className="flex bg-slate-50 p-1 rounded-2xl">
             {(['TODOS', 'CLIENTE', 'PROVEEDOR'] as const).map(t => (
-              <button 
+              <button
                 key={t}
                 onClick={() => setFilterType(t)}
                 className={`px-6 py-3 text-[10px] font-black uppercase rounded-xl transition-all ${filterType === t ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
@@ -170,7 +212,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
             ))}
           </div>
         </div>
-        <button 
+        <button
           onClick={() => handleOpenModal()}
           className="w-full lg:w-auto bg-slate-900 text-white px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-slate-200"
         >
@@ -188,20 +230,19 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
                   {client.name.charAt(0)}
                 </div>
                 <div className="flex flex-col items-end">
-                   <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
-                     client.type === 'CLIENTE' ? 'bg-blue-50 text-blue-600' : 
-                     client.type === 'PROVEEDOR' ? 'bg-emerald-50 text-emerald-600' : 'bg-purple-50 text-purple-600'
-                   }`}>
-                     {client.type}
-                   </span>
-                   <p className="text-[10px] font-mono text-slate-400 mt-2">{client.ruc}</p>
+                  <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${client.type === 'CLIENTE' ? 'bg-blue-50 text-blue-600' :
+                      client.type === 'PROVEEDOR' ? 'bg-emerald-50 text-emerald-600' : 'bg-purple-50 text-purple-600'
+                    }`}>
+                    {client.type}
+                  </span>
+                  <p className="text-[10px] font-mono text-slate-400 mt-2">{client.ruc}</p>
                 </div>
               </div>
 
               <h4 className="text-xl font-black text-slate-800 tracking-tight leading-tight mb-2 group-hover:text-blue-600 transition-colors">
                 {client.name}
               </h4>
-              
+
               <div className="space-y-3 mt-6">
                 {client.email && (
                   <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
@@ -224,21 +265,21 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
             <div className="bg-slate-50/50 p-6 flex justify-between items-center border-t border-slate-50">
               <div className="flex gap-2">
                 {client.phone && (
-                  <button 
+                  <button
                     onClick={() => window.open(`https://wa.me/593${client.phone.replace(/^0/, '')}`, '_blank')}
                     className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
                     title="WhatsApp"
                   >💬</button>
                 )}
                 {client.email && (
-                  <button 
+                  <button
                     onClick={() => window.location.href = `mailto:${client.email}`}
                     className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all shadow-sm"
                     title="Email"
                   >✉️</button>
                 )}
                 {client.address && (
-                  <button 
+                  <button
                     onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(client.address)}`, '_blank')}
                     className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                     title="Mapa"
@@ -268,19 +309,19 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RUC / Cédula</label>
-                  <input 
-                    placeholder="Ej: 1722334455001" 
+                  <input
+                    placeholder="Ej: 1722334455001"
                     value={formData.ruc}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
-                    onChange={e => setFormData({...formData, ruc: e.target.value})}
+                    onChange={e => setFormData({ ...formData, ruc: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Entidad</label>
-                  <select 
+                  <select
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all appearance-none"
                     value={formData.type}
-                    onChange={e => setFormData({...formData, type: e.target.value as any})}
+                    onChange={e => setFormData({ ...formData, type: e.target.value as any })}
                   >
                     <option value="CLIENTE">CLIENTE</option>
                     <option value="PROVEEDOR">PROVEEDOR</option>
@@ -289,38 +330,38 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Razón Social / Nombre Completo</label>
-                  <input 
-                    placeholder="Ej: Juan Pérez o Empresa S.A." 
+                  <input
+                    placeholder="Ej: Juan Pérez o Empresa S.A."
                     value={formData.name}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
-                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Correo Electrónico</label>
-                  <input 
-                    placeholder="email@ejemplo.com" 
+                  <input
+                    placeholder="email@ejemplo.com"
                     value={formData.email}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
-                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teléfono / WhatsApp</label>
-                  <input 
-                    placeholder="Ej: 0998877665" 
+                  <input
+                    placeholder="Ej: 0998877665"
                     value={formData.phone}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dirección Completa</label>
-                  <input 
-                    placeholder="Ej: Av. Amazonas y República, Quito" 
+                  <input
+                    placeholder="Ej: Av. Amazonas y República, Quito"
                     value={formData.address}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
-                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    onChange={e => setFormData({ ...formData, address: e.target.value })}
                   />
                 </div>
               </div>

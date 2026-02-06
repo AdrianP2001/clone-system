@@ -44,6 +44,7 @@ model Business {
   // --- CAMPOS SAAS (NUEVOS) ---
   plan                 String   @default("FREE") // FREE, PRO, ENTERPRISE
   isActive             Boolean  @default(true)   // Para bloquear impagos
+  features             Json?    // Permisos/Módulos habilitados (Inventario, Contabilidad, etc.)
   
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -79,7 +80,8 @@ model User {
 
 model Client {
   id        String   @id @default(uuid())
-  ruc       String   
+  identification String   
+  password  String?  // Contraseña para el portal (opcional, si es null usa identification)
   name      String
   email     String?
   address   String?
@@ -93,7 +95,7 @@ model Client {
 
   // IMPORTANTE: El RUC ya no es @unique global.
   // Es único SOLO dentro de la misma empresa.
-  @@unique([ruc, businessId]) 
+  @@unique([identification, businessId]) 
 }
 
 model Product {

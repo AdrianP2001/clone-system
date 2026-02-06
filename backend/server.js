@@ -11,6 +11,8 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const bcrypt = require('bcryptjs');
 const {
   validateXmlStructure,
   retryWithBackoff,
@@ -23,6 +25,7 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3001;
 const verifyToken = require('./auth/jwt.middleware');
+const authController = require('./auth/auth.controller'); // Importamos controlador para ruta manual
 
 // Middleware de seguridad
 app.use(helmet());
@@ -56,6 +59,9 @@ try {
   console.error('❌ Error cargando Auth:', error.message);
 }
 
+// Ruta manual para Login de Clientes (Portal)
+app.post('/api/auth/client/login', authController.clientLogin);
+
 // Middleware de autenticación (opcional para producción)
 const authenticate = (req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
@@ -68,6 +74,18 @@ const authenticate = (req, res, next) => {
     }
   }
   next();
+};
+
+// Middleware para verificar roles (RBAC)
+const checkRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        message: 'Acceso denegado. No tienes permisos suficientes.' 
+      });
+    }
+    next();
+  };
 };
 
 // Endpoints del SRI
@@ -87,7 +105,7 @@ const SRI_ENDPOINTS = {
 // ============================================
 app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
   try {
-    const { xml, p12Base64, password } = req.body;
+    const { xml, p12Base64, password, isProduction } = req.body;
 
     if (!xml || !p12Base64 || !password) {
       return res.status(400).json({
@@ -142,11 +160,16 @@ app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
     console.log(certStatus.message);
 
     if (certStatus.isExpired) {
-      return res.status(400).json({
-        success: false,
-        error: certStatus.message,
-        certificateInfo: certStatus
-      });
+      // LÓGICA DE MODO: Producción vs Demo
+      if (isProduction) {
+        return res.status(400).json({
+          success: false,
+          error: `⛔ ERROR PRODUCCIÓN: ${certStatus.message}. Debe usar un certificado vigente para facturar legalmente.`,
+          certificateInfo: certStatus
+        });
+      } else {
+        console.warn('⚠️ [SIMULACIÓN] Permitiendo certificado expirado en modo DEMO para pruebas.');
+      }
     }
 
     // Alerta si está por vencer
@@ -325,7 +348,12 @@ ${certBase64}
     // Serializar el DOM actualizado (con id="comprobante" agregado)
     const { XMLSerializer } = require('xmldom');
     const serializer = new XMLSerializer();
-    const xmlString = serializer.serializeToString(xmlDoc);
+    let xmlString = serializer.serializeToString(xmlDoc);
+
+    // Asegurar declaración XML
+    if (!xmlString.startsWith('<?xml')) {
+      xmlString = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlString;
+    }
 
     // Insertar firma en el XML actualizado
     const signedXml = xmlString.replace(/<\/(factura|notaCredito)>/, `${signatureBlock}</$1>`);
@@ -375,8 +403,8 @@ app.post('/api/sri/recepcion', authenticate, async (req, res) => {
       ? SRI_ENDPOINTS.PROD.RECEPCION
       : SRI_ENDPOINTS.TEST.RECEPCION;
 
-    console.log(`📡 Conectando a Recepción SRI (${isProduction ? 'PRODUCCIÓN' : 'PRUEBAS'})...`);
-    console.log(`🔗 Endpoint: ${endpoint}`);
+    console.log(`📡 Conectando a Recepción SRI (${isProduction ? 'PRODUCCIÓN REAL' : 'SIMULACIÓN/PRUEBAS'})...`);
+    console.log(` Endpoint: ${endpoint}`);
 
     // ============================================
     // USAR RETRY LOGIC CON BACKOFF EXPONENCIAL
@@ -463,7 +491,7 @@ app.post('/api/sri/autorizacion', authenticate, async (req, res) => {
       ? SRI_ENDPOINTS.PROD.AUTORIZACION
       : SRI_ENDPOINTS.TEST.AUTORIZACION;
 
-    console.log(`🔍 Consultando autorización: ${claveAcceso.substring(0, 15)}...`);
+    console.log(`🔍 Consultando autorización: ${claveAcceso.substring(0, 15)}... (${isProduction ? 'PRODUCCIÓN REAL' : 'SIMULACIÓN/PRUEBAS'})`);
     console.log(`🔗 Endpoint: ${endpoint}`);
 
     // ============================================
@@ -820,19 +848,133 @@ app.post('/api/notifications/send-email', authenticate, async (req, res) => {
   }
 });
 
+// backend/server.js
+
+// ============================================
+// RUTAS DE ADMINISTRACIÓN (SUPERADMIN)
+// ============================================
+
+// 1. Crear Nueva Empresa (Tenant)
+app.post('/api/admin/businesses', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { name, ruc, email, address, phone, plan, features } = req.body;
+    
+    const existing = await prisma.business.findUnique({ where: { ruc } });
+    if (existing) return res.status(400).json({ message: 'La empresa ya existe con este RUC' });
+
+    const newBusiness = await prisma.business.create({
+      data: {
+        name,
+        ruc,
+        email,
+        address,
+        phone,
+        plan: plan || 'BASIC',
+        features: features || { inventory: true, accounting: false, billing: true }, // Permisos por defecto
+        isActive: true,
+        establishmentCode: '001',
+        emissionPointCode: '001',
+        isAccountingObliged: false
+      }
+    });
+
+    // Crear secuenciales por defecto para la nueva empresa
+    await prisma.sequence.create({
+      data: {
+        type: '01', // Factura
+        establishmentCode: '001',
+        emissionPointCode: '001',
+        currentValue: 1,
+        businessId: newBusiness.id
+      }
+    });
+
+    res.json(newBusiness);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 1.1 Actualizar Empresa y Permisos (Superadmin)
+app.put('/api/admin/businesses/:id', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { features, isActive, plan, ...data } = req.body;
+
+    const updatedBusiness = await prisma.business.update({
+      where: { id },
+      data: {
+        ...data,
+        features, // Actualizar objeto de permisos/features
+        isActive,
+        plan
+      }
+    });
+    res.json(updatedBusiness);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 2. Crear Usuario Administrador para una Empresa
+app.post('/api/admin/users', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { email, password, businessId, role } = req.body;
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) return res.status(400).json({ message: 'El usuario ya existe' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: role || 'ADMIN', // Por defecto ADMIN de empresa
+        businessId: businessId // Vinculación a la empresa creada
+      }
+    });
+
+    res.json({ success: true, user: { id: newUser.id, email: newUser.email, role: newUser.role, businessId: newUser.businessId } });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // --- RUTAS DE NEGOCIO (PERFIL EMPRESA) ---
 app.get('/api/business', verifyToken, async (req, res) => {
   try {
-    let filtro = {}; // Por defecto: Traer TODO (Para Superadmin)
-    if (req.user.role !== 'SUPERADMIN') {
-      filtro = { businessId: req.user.businessId };
+    // 1. Caso especial: SUPERADMIN sin empresa asignada
+    if (req.user.role === 'SUPERADMIN' && !req.user.businessId) {
+      return res.json({
+        id: 'admin-corp',
+        name: 'PANEL SUPERADMIN',
+        ruc: '9999999999999',
+        email: req.user.email,
+        address: 'Nube - Sistema Central',
+        phone: '0999999999',
+        logo: null,
+        themeColor: '#1e293b' // Color oscuro para diferenciar
+      });
     }
-    // SAAS: Buscamos SOLO la empresa del usuario logueado
+
+    // 2. Validación normal para usuarios mortales
+    if (!req.user.businessId) {
+      return res.status(400).json({ message: 'Error crítico: Usuario sin empresa asignada' });
+    }
+
+    // 3. Búsqueda normal en la Base de Datos
     const business = await prisma.business.findUnique({
-      where: filtro
+      where: { id: req.user.businessId }
     });
+
+    if (!business) {
+      return res.status(404).json({ message: 'Empresa no encontrada' });
+    }
+
     res.json(business);
   } catch (e) {
+    console.error('Error en /api/business:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -963,7 +1105,13 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 app.get('/api/documents', verifyToken, async (req, res) => {
   try {
     let filtro = {}; // Por defecto: Traer TODO (Para Superadmin)
-    if (req.user.role !== 'SUPERADMIN') {
+    
+    // Lógica de roles
+    if (req.user.role === 'CLIENT') {
+      // Si es CLIENTE, solo ve SUS documentos de ESA empresa
+      filtro = { businessId: req.user.businessId, clientId: req.user.id }; // Asumiendo que Document tiene clientId
+    } else if (req.user.role !== 'SUPERADMIN') {
+      // Si es EMPRESA, ve todo lo de su empresa
       filtro = { businessId: req.user.businessId };
     }
     const docs = await prisma.document.findMany({
@@ -1085,22 +1233,25 @@ app.post('/api/documents', verifyToken, async (req, res) => {
         for (const item of items) {
           if (item.type === 'FISICO') {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
-            const previousStock = product.stock;
-            const newStock = previousStock + item.quantity; // SUMAR stock
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: newStock }
-            });
-            await tx.inventoryMovement.create({
-              data: {
-                productId: item.productId,
-                documentId: doc.id,
-                type: 'DEVOLUCION',
-                quantity: item.quantity, // Positivo porque entra
-                previousStock,
-                newStock
-              }
-            });
+            
+            if (product && product.businessId === businessId) {
+              const previousStock = product.stock;
+              const newStock = previousStock + item.quantity; // SUMAR stock
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: newStock }
+              });
+              await tx.inventoryMovement.create({
+                data: {
+                  productId: item.productId,
+                  documentId: doc.id,
+                  type: 'DEVOLUCION',
+                  quantity: item.quantity, // Positivo porque entra
+                  previousStock,
+                  newStock
+                }
+              });
+            }
           }
         }
       }
@@ -1110,22 +1261,25 @@ app.post('/api/documents', verifyToken, async (req, res) => {
         for (const item of items) {
           if (item.type === 'FISICO') {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
-            const previousStock = product.stock;
-            const newStock = previousStock + item.quantity; // SUMAR stock
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: newStock }
-            });
-            await tx.inventoryMovement.create({
-              data: {
-                productId: item.productId,
-                documentId: doc.id,
-                type: 'COMPRA',
-                quantity: item.quantity, // Positivo porque entra
-                previousStock,
-                newStock
-              }
-            });
+            
+            if (product && product.businessId === businessId) {
+              const previousStock = product.stock;
+              const newStock = previousStock + item.quantity; // SUMAR stock
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: newStock }
+              });
+              await tx.inventoryMovement.create({
+                data: {
+                  productId: item.productId,
+                  documentId: doc.id,
+                  type: 'COMPRA',
+                  quantity: item.quantity, // Positivo porque entra
+                  previousStock,
+                  newStock
+                }
+              });
+            }
           }
         }
       }
@@ -1137,6 +1291,98 @@ app.post('/api/documents', verifyToken, async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(400).json({ error: e.message });
+  }
+});
+
+// ============================================
+// ENDPOINT: Asistente de IA (Gemini)
+// ============================================
+app.post('/api/ai/chat', verifyToken, async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyASFiaKmJ_5vOy8sPYhhzl86ag4GexX7rM';
+
+    if (!apiKey) {
+      // Fallback para modo desarrollo si no hay key
+      console.warn('⚠️ GEMINI_API_KEY no configurada');
+      return res.json({ 
+        reply: "El servicio de IA no está configurado correctamente en el servidor. Por favor configura la variable GEMINI_API_KEY." 
+      });
+    }
+
+    // Prompt del sistema con contexto
+    const systemPrompt = `Eres Ecuafact AI, un asistente experto en facturación electrónica del SRI (Ecuador).
+    
+    CONTEXTO DEL NEGOCIO:
+    Nombre: ${context?.name || 'Usuario'}
+    RUC: ${context?.ruc || 'N/A'}
+    Régimen: ${context?.regime || 'General'}
+    
+    TU OBJETIVO:
+    Ayudar con dudas sobre impuestos (IVA 15%), retenciones, fechas de vencimiento y uso del sistema.
+    Responde de forma breve, amigable y profesional. Si no sabes algo, sugiere consultar a un contador.`;
+
+    console.log('🤖 Enviando consulta a Gemini 1.5 Pro...');
+    
+    // Inicializar la librería
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Usamos 'gemini-1.5-pro' como alternativa estable
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+    const prompt = `${systemPrompt}\n\nPregunta del usuario: ${message}`;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const reply = response.text();
+
+    res.json({ reply });
+
+  } catch (error) {
+    console.error('❌ Error AI:', error.message);
+    // Devolver 200 con el mensaje de error para que se muestre en el chat y no rompa el frontend
+    res.json({ reply: `Error de IA: ${error.message}. (Verifica tu API Key o cuota)` });
+  }
+});
+
+// ============================================
+// ENDPOINT: Asistente de IA (Insights Dashboard)
+// ============================================
+app.post('/api/ai/insights', verifyToken, async (req, res) => {
+  try {
+    const { salesData } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyASFiaKmJ_5vOy8sPYhhzl86ag4GexX7rM';
+
+    if (!apiKey) {
+      return res.json({
+        insights: "El servicio de IA no está configurado en el servidor (falta GEMINI_API_KEY)."
+      });
+    }
+
+    const systemPrompt = `Eres un asesor financiero experto para negocios en Ecuador. Analiza los siguientes datos y genera 3 recomendaciones cortas y accionables en formato de lista de viñetas (markdown). Sé directo y profesional.
+    
+    DATOS:
+    - Total Ventas: ${salesData.totalVentas}
+    - Cantidad de Documentos: ${salesData.documentos}
+    - Inventario: ${salesData.inventario.length} productos.
+    
+    Ejemplo de respuesta:
+    - **Optimizar Stock:** Se detectan X productos con bajo inventario. Revisa tus niveles de compra para evitar quiebres de stock.
+    - **Incentivar Ventas:** El ticket promedio es de $Y. Considera crear combos o promociones para aumentarlo.
+    - **Revisión Fiscal:** Has emitido Z facturas. Asegúrate de tener todo listo para tu próxima declaración del IVA.`;
+
+    console.log('📊 Generando insights con Gemini 1.5 Pro...');
+    
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const insights = response.text();
+
+    res.json({ insights });
+
+  } catch (error) {
+    console.error('❌ Error AI Insights:', error.message);
+    res.json({ insights: `No se pudieron generar recomendaciones: ${error.message}` });
   }
 });
 
@@ -1173,6 +1419,9 @@ app.listen(PORT, () => {
   console.log(`   POST http://localhost:${PORT}/api/sri/sign-xml`);
   console.log(`   POST http://localhost:${PORT}/api/sri/recepcion`);
   console.log(`   POST http://localhost:${PORT}/api/sri/autorizacion`);
+  console.log(`   POST http://localhost:${PORT}/api/login`);
+  console.log(`   POST http://localhost:${PORT}/api/auth/client/login`);
+  console.log(`   POST http://localhost:${PORT}/api/forgot-password`);
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-email`);
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-sms`);
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-whatsapp`);
@@ -1197,4 +1446,3 @@ process.on('SIGINT', () => {
   console.log('👋 Cerrando servidor...');
   process.exit(0);
 });
-

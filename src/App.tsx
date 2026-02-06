@@ -21,6 +21,8 @@ import { Client, Product, AppNotification, Document, DocumentType, SriStatus, Bu
 import { MOCK_CLIENTS, MOCK_PRODUCTS } from '../constants';
 
 import Login from './Login';
+import ClientLogin from './ClientLogin';
+import ClientDashboard from './ClientDashboard';
 import { client } from './api/client';
 
 // URL del backend definida en variable de entorno o fallback
@@ -173,16 +175,34 @@ const App: React.FC = () => {
 
   // ⚡ HANDLER AUTORIZACIÓN: Guarda en BD
   const handleDocumentAuthorized = async (doc: Document, items?: InvoiceItem[]) => {
+    // MODO DEMO: Guardado local simulado (Memoria)
+    if (isDemoMode) {
+      setDocuments(prev => [doc, ...prev]);
+      if (items) {
+        setProducts(prev => prev.map(p => {
+          const item = items.find(i => i.productId === p.id);
+          if (item) return { ...p, stock: Math.max(0, p.stock - item.quantity) };
+          return p;
+        }));
+      }
+      showNotify("Documento autorizado (Modo Demo - Local)", "success");
+      return;
+    }
+
     if (!signatureFile && businessInfo.isProduction) {
       showNotify("Firma requerida para producción", "error");
       return;
     }
 
     try {
+      const token = localStorage.getItem('token');
       // 1. Intentar guardar en Base de Datos
       const response = await fetch(`${API_URL}/api/documents`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ ...doc, items })
       });
 
@@ -194,7 +214,9 @@ const App: React.FC = () => {
 
       // 3. Recargar productos para actualizar stock
       if (items) {
-        const prodRes = await fetch(`${API_URL}/api/products`);
+        const prodRes = await fetch(`${API_URL}/api/products`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (prodRes.ok) setProducts(await prodRes.json());
       }
 
@@ -227,10 +249,16 @@ const App: React.FC = () => {
   // 💾 GUARDAR CONFIGURACIÓN EMPRESARIAL
   const saveBusinessConfig = async () => {
     try {
+      const token = localStorage.getItem('token');
+      // Excluir el ID del objeto para evitar errores de actualización en Prisma
+      const { id, ...dataToSave } = businessInfo as any;
       const response = await fetch(`${API_URL}/api/business`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(businessInfo)
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(dataToSave)
       });
 
       if (!response.ok) throw new Error('Error en servidor');
@@ -254,10 +282,14 @@ const App: React.FC = () => {
         notificationSettings: settings
       };
 
+      const token = localStorage.getItem('token');
       // 3. Enviar al backend
       const response = await fetch(`${API_URL}/api/business`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(updatedBusinessInfo)
       });
 
@@ -274,6 +306,16 @@ const App: React.FC = () => {
 
   // ESTADO DE SEGURIDAD: Verificamos si existe el token al cargar
   //LA COMPUERTA (Inserta esto ANTES del 'return' principal)
+  
+  // 1. Ruta pública para Portal de Clientes
+  if (window.location.pathname === '/portal/login') {
+    return <ClientLogin />;
+  }
+  // 2. Ruta protegida para Dashboard de Clientes
+  if (window.location.pathname === '/portal/dashboard') {
+    return <ClientDashboard />;
+  }
+
   if (!isAuthenticated) {
     return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
   }
@@ -305,10 +347,11 @@ const App: React.FC = () => {
       case 'kardex': return <Kardex products={products} documents={documents} onNotify={showNotify} />;
       case 'profitability': return <ProfitabilityAnalysis products={products} documents={documents} onNotify={showNotify} />;
       case 'notifications': return <NotificationSettingsComponent settings={notificationSettings} onSave={handleSaveNotificationSettings} onNotify={showNotify} />;
-      case 'reports': return <Reports documents={documents} businessInfo={businessInfo} />;
-      case 'ai-assistant': return <AIAssistant />;
-      case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} />;
-      case 'products': return <ProductManager products={products} setProducts={setProducts} onNotify={showNotify} />;
+      case 'reports': return <Reports documents={documents} businessInfo={businessInfo} />;      case 'ai-assistant': return <AIAssistant businessInfo={businessInfo} />;
+
+      
+      case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} isDemoMode={isDemoMode}/>;
+      case 'products': return <ProductManager products={products} setProducts={setProducts} onNotify={showNotify} isDemoMode={isDemoMode} />;
       case 'integrations': return <Integrations products={products} clients={clients} businessInfo={businessInfo} onOrderAuthorized={handleDocumentAuthorized} onNotify={showNotify} onUpdateProducts={setProducts} />;
       case 'config':
 
@@ -518,17 +561,23 @@ const App: React.FC = () => {
 
       {/* --- EL BOTÓN SECRETO DEL SUPERADMIN --- */}
       {currentUser?.role === 'SUPERADMIN' && (
-        <div className="fixed bottom-4 left-4 z-[9999]">
+        <div className="fixed top-5 right-24 z-[9999] flex items-center gap-3 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-slate-200">
+          <span className={`text-[10px] font-black uppercase tracking-widest ${isDemoMode ? 'text-orange-500' : 'text-emerald-600'}`}>
+            {isDemoMode ? 'Modo Demo' : 'Modo Live'}
+          </span>
           <button
             onClick={() => setIsDemoMode(!isDemoMode)}
             className={`
-              px-4 py-2 rounded-full font-bold shadow-2xl transition-all 
-              ${isDemoMode
-                ? 'bg-orange-500 text-white hover:bg-orange-600 ring-4 ring-orange-200'
-                : 'bg-green-600 text-white hover:bg-green-700 ring-4 ring-green-200'}
+              w-10 h-5 rounded-full p-0.5 transition-colors duration-300 focus:outline-none
+              ${isDemoMode ? 'bg-orange-400' : 'bg-emerald-500'}
             `}
           >
-            {isDemoMode ? '🚧 MODO DEMO' : '🚀 MODO LIVE'}
+            <div 
+              className={`
+                w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300
+                ${isDemoMode ? 'translate-x-0' : 'translate-x-5'}
+              `} 
+            />
           </button>
         </div>
       )}
