@@ -28,7 +28,10 @@
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+<<<<<<< HEAD
     "tailwindcss": "^4.1.18",
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

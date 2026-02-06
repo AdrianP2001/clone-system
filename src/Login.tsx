@@ -12,6 +12,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+<<<<<<< HEAD
     const [view, setView] = useState<'login' | 'forgot'>('login');
     const [resetEmail, setResetEmail] = useState('');
     const [resetMessage, setResetMessage] = useState('');
@@ -38,6 +39,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             setLoading(false);
         }
     };
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -72,6 +75,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         }
     };
 
+<<<<<<< HEAD
     if (view === 'forgot') {
         return (
             <div className="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-100 h-screen w-full flex items-center justify-center selection:bg-primary selection:text-white relative overflow-hidden">
@@ -122,6 +126,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         );
     }
 
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     return (
         <div className="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-100 h-screen w-full flex items-center justify-center selection:bg-primary selection:text-white relative overflow-hidden">
 
@@ -182,9 +188,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="password">
                                         Contraseña
                                     </label>
+<<<<<<< HEAD
                                     <button type="button" onClick={() => setView('forgot')} className="text-xs font-medium text-primary hover:text-blue-600 hover:underline">
                                         ¿Olvidaste tu contraseña?
                                     </button>
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
                                 </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
@@ -234,11 +243,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                         </>
                                     )}
                                 </button>
+<<<<<<< HEAD
                                 <div className="mt-4 text-center">
                                     <a href="/portal/login" className="text-sm text-gray-500 hover:text-primary transition-colors font-medium">
                                         ¿Eres cliente? <span className="underline">Ingresa al Portal aquí</span>
                                     </a>
                                 </div>
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
                             </div>
                         </form>
 

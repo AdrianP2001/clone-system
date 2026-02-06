@@ -7,13 +7,20 @@ interface ProductManagerProps {
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   onNotify: (msg: string, type?: any) => void;
+<<<<<<< HEAD
   isDemoMode: boolean;
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 }
 
 // URL del backend
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
+<<<<<<< HEAD
 const ProductManager: React.FC<ProductManagerProps> = ({ products, setProducts, onNotify, isDemoMode }) => {
+=======
+const ProductManager: React.FC<ProductManagerProps> = ({ products, setProducts, onNotify }) => {
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   const [showModal, setShowModal] = useState(false);
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({ taxRate: 15, type: 'FISICO', category: 'Otros' });
@@ -59,6 +66,7 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, setProducts, 
       return;
     }
     
+<<<<<<< HEAD
     // MODO DEMO: Guardado local
     if (isDemoMode) {
       if (editingProd) {
@@ -90,11 +98,19 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, setProducts, 
       const token = localStorage.getItem('token');
       const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 
+=======
+    setLoading(true);
+    try {
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
       if (editingProd) {
         // UPDATE
         const response = await fetch(`${API_URL}/api/products/${editingProd.id}`, {
           method: 'PUT',
+<<<<<<< HEAD
           headers,
+=======
+          headers: { 'Content-Type': 'application/json' },
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           body: JSON.stringify(formData)
         });
 
@@ -107,7 +123,11 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, setProducts, 
         // CREATE
         const response = await fetch(`${API_URL}/api/products`, {
           method: 'POST',
+<<<<<<< HEAD
           headers,
+=======
+          headers: { 'Content-Type': 'application/json' },
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           body: JSON.stringify({
             ...formData,
             price: Number(formData.price) || 0,
@@ -138,6 +158,7 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, setProducts, 
 
   const handleDelete = async (id: string) => {
     if (confirm("¿Eliminar este producto del inventario?")) {
+<<<<<<< HEAD
       if (isDemoMode) {
         setProducts(products.filter(p => p.id !== id));
         onNotify("Producto eliminado (Modo Demo)");
@@ -147,6 +168,10 @@ const ProductManager: React.FC<ProductManagerProps> = ({ products, setProducts, 
       try {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/api/products/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+=======
+      try {
+        const response = await fetch(`${API_URL}/api/products/${id}`, { method: 'DELETE' });
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         if (!response.ok) throw new Error('Error eliminando');
         
         setProducts(products.filter(p => p.id !== id));

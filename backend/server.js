@@ -11,8 +11,11 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const morgan = require('morgan');
+<<<<<<< HEAD
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const bcrypt = require('bcryptjs');
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 const {
   validateXmlStructure,
   retryWithBackoff,
@@ -25,7 +28,10 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3001;
 const verifyToken = require('./auth/jwt.middleware');
+<<<<<<< HEAD
 const authController = require('./auth/auth.controller'); // Importamos controlador para ruta manual
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
 // Middleware de seguridad
 app.use(helmet());
@@ -59,9 +65,12 @@ try {
   console.error('❌ Error cargando Auth:', error.message);
 }
 
+<<<<<<< HEAD
 // Ruta manual para Login de Clientes (Portal)
 app.post('/api/auth/client/login', authController.clientLogin);
 
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 // Middleware de autenticación (opcional para producción)
 const authenticate = (req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
@@ -76,6 +85,7 @@ const authenticate = (req, res, next) => {
   next();
 };
 
+<<<<<<< HEAD
 // Middleware para verificar roles (RBAC)
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
@@ -88,6 +98,8 @@ const checkRole = (allowedRoles) => {
   };
 };
 
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 // Endpoints del SRI
 const SRI_ENDPOINTS = {
   TEST: {
@@ -105,7 +117,11 @@ const SRI_ENDPOINTS = {
 // ============================================
 app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
   try {
+<<<<<<< HEAD
     const { xml, p12Base64, password, isProduction } = req.body;
+=======
+    const { xml, p12Base64, password } = req.body;
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     if (!xml || !p12Base64 || !password) {
       return res.status(400).json({
@@ -160,6 +176,7 @@ app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
     console.log(certStatus.message);
 
     if (certStatus.isExpired) {
+<<<<<<< HEAD
       // LÓGICA DE MODO: Producción vs Demo
       if (isProduction) {
         return res.status(400).json({
@@ -170,6 +187,13 @@ app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
       } else {
         console.warn('⚠️ [SIMULACIÓN] Permitiendo certificado expirado en modo DEMO para pruebas.');
       }
+=======
+      return res.status(400).json({
+        success: false,
+        error: certStatus.message,
+        certificateInfo: certStatus
+      });
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     }
 
     // Alerta si está por vencer
@@ -348,12 +372,16 @@ ${certBase64}
     // Serializar el DOM actualizado (con id="comprobante" agregado)
     const { XMLSerializer } = require('xmldom');
     const serializer = new XMLSerializer();
+<<<<<<< HEAD
     let xmlString = serializer.serializeToString(xmlDoc);
 
     // Asegurar declaración XML
     if (!xmlString.startsWith('<?xml')) {
       xmlString = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlString;
     }
+=======
+    const xmlString = serializer.serializeToString(xmlDoc);
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     // Insertar firma en el XML actualizado
     const signedXml = xmlString.replace(/<\/(factura|notaCredito)>/, `${signatureBlock}</$1>`);
@@ -403,8 +431,13 @@ app.post('/api/sri/recepcion', authenticate, async (req, res) => {
       ? SRI_ENDPOINTS.PROD.RECEPCION
       : SRI_ENDPOINTS.TEST.RECEPCION;
 
+<<<<<<< HEAD
     console.log(`📡 Conectando a Recepción SRI (${isProduction ? 'PRODUCCIÓN REAL' : 'SIMULACIÓN/PRUEBAS'})...`);
     console.log(` Endpoint: ${endpoint}`);
+=======
+    console.log(`📡 Conectando a Recepción SRI (${isProduction ? 'PRODUCCIÓN' : 'PRUEBAS'})...`);
+    console.log(`🔗 Endpoint: ${endpoint}`);
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     // ============================================
     // USAR RETRY LOGIC CON BACKOFF EXPONENCIAL
@@ -491,7 +524,11 @@ app.post('/api/sri/autorizacion', authenticate, async (req, res) => {
       ? SRI_ENDPOINTS.PROD.AUTORIZACION
       : SRI_ENDPOINTS.TEST.AUTORIZACION;
 
+<<<<<<< HEAD
     console.log(`🔍 Consultando autorización: ${claveAcceso.substring(0, 15)}... (${isProduction ? 'PRODUCCIÓN REAL' : 'SIMULACIÓN/PRUEBAS'})`);
+=======
+    console.log(`🔍 Consultando autorización: ${claveAcceso.substring(0, 15)}...`);
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     console.log(`🔗 Endpoint: ${endpoint}`);
 
     // ============================================
@@ -848,6 +885,7 @@ app.post('/api/notifications/send-email', authenticate, async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 // backend/server.js
 
 // ============================================
@@ -1175,6 +1213,21 @@ app.get('/api/business', verifyToken, async (req, res) => {
     res.json(business);
   } catch (e) {
     console.error('Error en /api/business:', e);
+=======
+// --- RUTAS DE NEGOCIO (PERFIL EMPRESA) ---
+app.get('/api/business', verifyToken, async (req, res) => {
+  try {
+    let filtro = {}; // Por defecto: Traer TODO (Para Superadmin)
+    if (req.user.role !== 'SUPERADMIN') {
+      filtro = { businessId: req.user.businessId };
+    }
+    // SAAS: Buscamos SOLO la empresa del usuario logueado
+    const business = await prisma.business.findUnique({
+      where: filtro
+    });
+    res.json(business);
+  } catch (e) {
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     res.status(500).json({ error: e.message });
   }
 });
@@ -1305,6 +1358,7 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 app.get('/api/documents', verifyToken, async (req, res) => {
   try {
     let filtro = {}; // Por defecto: Traer TODO (Para Superadmin)
+<<<<<<< HEAD
     
     // Lógica de roles
     if (req.user.role === 'CLIENT') {
@@ -1312,6 +1366,9 @@ app.get('/api/documents', verifyToken, async (req, res) => {
       filtro = { businessId: req.user.businessId, clientId: req.user.id }; // Asumiendo que Document tiene clientId
     } else if (req.user.role !== 'SUPERADMIN') {
       // Si es EMPRESA, ve todo lo de su empresa
+=======
+    if (req.user.role !== 'SUPERADMIN') {
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
       filtro = { businessId: req.user.businessId };
     }
     const docs = await prisma.document.findMany({
@@ -1433,6 +1490,7 @@ app.post('/api/documents', verifyToken, async (req, res) => {
         for (const item of items) {
           if (item.type === 'FISICO') {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
+<<<<<<< HEAD
             
             if (product && product.businessId === businessId) {
               const previousStock = product.stock;
@@ -1452,6 +1510,24 @@ app.post('/api/documents', verifyToken, async (req, res) => {
                 }
               });
             }
+=======
+            const previousStock = product.stock;
+            const newStock = previousStock + item.quantity; // SUMAR stock
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: newStock }
+            });
+            await tx.inventoryMovement.create({
+              data: {
+                productId: item.productId,
+                documentId: doc.id,
+                type: 'DEVOLUCION',
+                quantity: item.quantity, // Positivo porque entra
+                previousStock,
+                newStock
+              }
+            });
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           }
         }
       }
@@ -1461,6 +1537,7 @@ app.post('/api/documents', verifyToken, async (req, res) => {
         for (const item of items) {
           if (item.type === 'FISICO') {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
+<<<<<<< HEAD
             
             if (product && product.businessId === businessId) {
               const previousStock = product.stock;
@@ -1480,6 +1557,24 @@ app.post('/api/documents', verifyToken, async (req, res) => {
                 }
               });
             }
+=======
+            const previousStock = product.stock;
+            const newStock = previousStock + item.quantity; // SUMAR stock
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: newStock }
+            });
+            await tx.inventoryMovement.create({
+              data: {
+                productId: item.productId,
+                documentId: doc.id,
+                type: 'COMPRA',
+                quantity: item.quantity, // Positivo porque entra
+                previousStock,
+                newStock
+              }
+            });
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           }
         }
       }
@@ -1494,6 +1589,7 @@ app.post('/api/documents', verifyToken, async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 // ============================================
 // ENDPOINT: Asistente de IA (Gemini)
 // ============================================
@@ -1586,6 +1682,8 @@ app.post('/api/ai/insights', verifyToken, async (req, res) => {
   }
 });
 
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -1619,9 +1717,12 @@ app.listen(PORT, () => {
   console.log(`   POST http://localhost:${PORT}/api/sri/sign-xml`);
   console.log(`   POST http://localhost:${PORT}/api/sri/recepcion`);
   console.log(`   POST http://localhost:${PORT}/api/sri/autorizacion`);
+<<<<<<< HEAD
   console.log(`   POST http://localhost:${PORT}/api/login`);
   console.log(`   POST http://localhost:${PORT}/api/auth/client/login`);
   console.log(`   POST http://localhost:${PORT}/api/forgot-password`);
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-email`);
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-sms`);
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-whatsapp`);
@@ -1646,3 +1747,7 @@ process.on('SIGINT', () => {
   console.log('👋 Cerrando servidor...');
   process.exit(0);
 });
+<<<<<<< HEAD
+=======
+
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a

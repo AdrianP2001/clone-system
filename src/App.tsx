@@ -21,10 +21,13 @@ import { Client, Product, AppNotification, Document, DocumentType, SriStatus, Bu
 import { MOCK_CLIENTS, MOCK_PRODUCTS } from '../constants';
 
 import Login from './Login';
+<<<<<<< HEAD
 import ClientLogin from './ClientLogin';
 import ClientDashboard from './ClientDashboard';
 import SubscriptionManager from './SubscriptionManager';
 import AdminUsers from './AdminUsers';
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 import { client } from './api/client';
 
 // URL del backend definida en variable de entorno o fallback
@@ -35,7 +38,10 @@ const App: React.FC = () => {
   // ESTADO DE SEGURIDAD: Verificamos si existe el token al cargar
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState('dashboard');
+<<<<<<< HEAD
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
   // --- ESTADO DEL MODO DEMO ---
   // Por defecto false (Modo Producción).
@@ -178,6 +184,7 @@ const App: React.FC = () => {
 
   // ⚡ HANDLER AUTORIZACIÓN: Guarda en BD
   const handleDocumentAuthorized = async (doc: Document, items?: InvoiceItem[]) => {
+<<<<<<< HEAD
     // MODO DEMO: Guardado local simulado (Memoria)
     if (isDemoMode) {
       setDocuments(prev => [doc, ...prev]);
@@ -192,12 +199,15 @@ const App: React.FC = () => {
       return;
     }
 
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     if (!signatureFile && businessInfo.isProduction) {
       showNotify("Firma requerida para producción", "error");
       return;
     }
 
     try {
+<<<<<<< HEAD
       const token = localStorage.getItem('token');
       // 1. Intentar guardar en Base de Datos
       const response = await fetch(`${API_URL}/api/documents`, {
@@ -206,6 +216,12 @@ const App: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
+=======
+      // 1. Intentar guardar en Base de Datos
+      const response = await fetch(`${API_URL}/api/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         body: JSON.stringify({ ...doc, items })
       });
 
@@ -217,9 +233,13 @@ const App: React.FC = () => {
 
       // 3. Recargar productos para actualizar stock
       if (items) {
+<<<<<<< HEAD
         const prodRes = await fetch(`${API_URL}/api/products`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+=======
+        const prodRes = await fetch(`${API_URL}/api/products`);
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         if (prodRes.ok) setProducts(await prodRes.json());
       }
 
@@ -252,6 +272,7 @@ const App: React.FC = () => {
   // 💾 GUARDAR CONFIGURACIÓN EMPRESARIAL
   const saveBusinessConfig = async () => {
     try {
+<<<<<<< HEAD
       const token = localStorage.getItem('token');
       // Excluir el ID del objeto para evitar errores de actualización en Prisma
       const { id, ...dataToSave } = businessInfo as any;
@@ -262,6 +283,12 @@ const App: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(dataToSave)
+=======
+      const response = await fetch(`${API_URL}/api/business`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(businessInfo)
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
       });
 
       if (!response.ok) throw new Error('Error en servidor');
@@ -285,6 +312,7 @@ const App: React.FC = () => {
         notificationSettings: settings
       };
 
+<<<<<<< HEAD
       const token = localStorage.getItem('token');
       // 3. Enviar al backend
       const response = await fetch(`${API_URL}/api/business`, {
@@ -293,6 +321,12 @@ const App: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
+=======
+      // 3. Enviar al backend
+      const response = await fetch(`${API_URL}/api/business`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         body: JSON.stringify(updatedBusinessInfo)
       });
 
@@ -309,6 +343,7 @@ const App: React.FC = () => {
 
   // ESTADO DE SEGURIDAD: Verificamos si existe el token al cargar
   //LA COMPUERTA (Inserta esto ANTES del 'return' principal)
+<<<<<<< HEAD
   
   // 1. Ruta pública para Portal de Clientes
   if (window.location.pathname === '/portal/login') {
@@ -319,6 +354,8 @@ const App: React.FC = () => {
     return <ClientDashboard />;
   }
 
+=======
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   if (!isAuthenticated) {
     return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
   }
@@ -350,6 +387,7 @@ const App: React.FC = () => {
       case 'kardex': return <Kardex products={products} documents={documents} onNotify={showNotify} />;
       case 'profitability': return <ProfitabilityAnalysis products={products} documents={documents} onNotify={showNotify} />;
       case 'notifications': return <NotificationSettingsComponent settings={notificationSettings} onSave={handleSaveNotificationSettings} onNotify={showNotify} />;
+<<<<<<< HEAD
       case 'reports': return <Reports documents={documents} businessInfo={businessInfo} />;      case 'ai-assistant': return <AIAssistant businessInfo={businessInfo} />;
       // Pasamos el ID seleccionado al Manager de Suscripciones
       case 'admin-subscriptions': return <SubscriptionManager businessId={selectedBusinessId} onNotify={showNotify} />;
@@ -359,6 +397,12 @@ const App: React.FC = () => {
       
       case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} isDemoMode={isDemoMode}/>;
       case 'products': return <ProductManager products={products} setProducts={setProducts} onNotify={showNotify} isDemoMode={isDemoMode} />;
+=======
+      case 'reports': return <Reports documents={documents} businessInfo={businessInfo} />;
+      case 'ai-assistant': return <AIAssistant />;
+      case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} />;
+      case 'products': return <ProductManager products={products} setProducts={setProducts} onNotify={showNotify} />;
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
       case 'integrations': return <Integrations products={products} clients={clients} businessInfo={businessInfo} onOrderAuthorized={handleDocumentAuthorized} onNotify={showNotify} onUpdateProducts={setProducts} />;
       case 'config':
 
@@ -568,6 +612,7 @@ const App: React.FC = () => {
 
       {/* --- EL BOTÓN SECRETO DEL SUPERADMIN --- */}
       {currentUser?.role === 'SUPERADMIN' && (
+<<<<<<< HEAD
         <div className="fixed top-5 right-24 z-[9999] flex items-center gap-3 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-slate-200">
           <span className={`text-[10px] font-black uppercase tracking-widest ${isDemoMode ? 'text-orange-500' : 'text-emerald-600'}`}>
             {isDemoMode ? 'Modo Demo' : 'Modo Live'}
@@ -597,6 +642,19 @@ const App: React.FC = () => {
                 ${isDemoMode ? 'translate-x-0' : 'translate-x-5'}
               `} 
             />
+=======
+        <div className="fixed bottom-4 left-4 z-[9999]">
+          <button
+            onClick={() => setIsDemoMode(!isDemoMode)}
+            className={`
+              px-4 py-2 rounded-full font-bold shadow-2xl transition-all 
+              ${isDemoMode
+                ? 'bg-orange-500 text-white hover:bg-orange-600 ring-4 ring-orange-200'
+                : 'bg-green-600 text-white hover:bg-green-700 ring-4 ring-green-200'}
+            `}
+          >
+            {isDemoMode ? '🚧 MODO DEMO' : '🚀 MODO LIVE'}
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           </button>
         </div>
       )}

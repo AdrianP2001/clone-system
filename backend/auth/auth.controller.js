@@ -41,6 +41,7 @@ const login = async (req, res) => {
 
         // 4. 🛑 VERIFICACIÓN DE EMPRESA (SaaS)
         // Si no es Superadmin y no tiene empresa, LO BLOQUEAMOS.
+<<<<<<< HEAD
         let businessFeatures = {};
 
         if (user.role !== 'SUPERADMIN') {
@@ -63,6 +64,13 @@ const login = async (req, res) => {
             }
 
             businessFeatures = business.features || {};
+=======
+        if (user.role !== 'SUPERADMIN' && !user.businessId) {
+            console.error('⛔ Acceso denegado: Usuario regular sin empresa.');
+            return res.status(403).json({
+                message: 'Su cuenta no tiene una empresa asignada. Contacte soporte.'
+            });
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         }
 
         // 5. Generamos el token INCLUYENDO businessId
@@ -87,8 +95,12 @@ const login = async (req, res) => {
                 id: user.id,
                 email: user.email, 
                 role: user.role,
+<<<<<<< HEAD
                 businessId: user.businessId,
                 features: businessFeatures // Enviamos los permisos al frontend
+=======
+                businessId: user.businessId
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
             }
         });
 
@@ -98,6 +110,7 @@ const login = async (req, res) => {
     }
 };
 
+<<<<<<< HEAD
 const clientLogin = async (req, res) => {
     try {
         // Login para clientes: Usuario y Contraseña son la Cédula/RUC
@@ -282,3 +295,6 @@ const clientForgotPassword = async (req, res) => {
 // Nota: clientResetPassword sería muy similar a resetPassword pero buscando en prisma.client
 
 module.exports = { login, clientLogin, forgotPassword, resetPassword, changeClientPassword, clientForgotPassword };
+=======
+module.exports = { login };
+>>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
