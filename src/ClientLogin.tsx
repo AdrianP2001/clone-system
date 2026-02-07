@@ -6,6 +6,7 @@ const ClientLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,14 +127,23 @@ const ClientLogin = () => {
                         <div className="text-slate-400 flex border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 items-center justify-center pl-4 rounded-l-lg border-r-0">
                           <span className="material-symbols-outlined text-xl">lock</span>
                         </div>
-                        <input 
-                          className="form-input flex w-full min-w-0 flex-1 rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-[#135bec]/20 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-[#135bec] h-12 placeholder:text-slate-400 p-3 text-base font-normal" 
-                          placeholder="••••••••" 
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                        />
+                        <div className="relative flex-1">
+                          <input 
+                            className="form-input w-full rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-[#135bec]/20 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-[#135bec] h-12 placeholder:text-slate-400 p-3 text-base font-normal pr-10" 
+                            placeholder="••••••••" 
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          >
+                            <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 

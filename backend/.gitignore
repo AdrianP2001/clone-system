@@ -3,11 +3,7 @@ node_modules/
 package-lock.json
 
 # Environment variables
-<<<<<<< HEAD
-#.env
-=======
 .env
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 .env.local
 .env.production
 

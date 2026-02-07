@@ -1,27 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { getAllUsers, addSubscriptionTime, getSubscriptionHistory, UserWithBusiness, SubscriptionHistoryItem } from './adminService';
+
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+
+// Definimos interfaces locales para evitar errores de importación
+interface Business {
+  id: string | number;
+  name: string;
+  isActive: boolean;
+  subscriptionEnd: string | Date | null;
+}
+
+interface UserWithBusiness {
+  id: string | number;
+  email: string;
+  role: string;
+  businessId: string | number | null;
+  business: Business | null;
+}
+
+interface SubscriptionHistoryItem {
+  id: string;
+  date: string;
+  action: string;
+  details: string;
+  amount: string;
+}
 
 interface SubscriptionManagerProps {
-  businessId: number | null;
+  businessId: string | number | null; // Aceptamos string o number
   onNotify: (text: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ businessId, onNotify }) => {
   const [users, setUsers] = useState<UserWithBusiness[]>([]);
-  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(businessId);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | number | null>(businessId);
   const [monthsInput, setMonthsInput] = useState<string>('1');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'manage' | 'history'>('manage');
   const [history, setHistory] = useState<SubscriptionHistoryItem[]>([]);
 
-  // Cargar usuarios al montar
+  // Cargar usuarios directamente desde la API
   const loadData = async () => {
+    setLoading(true);
     try {
-      const data = await getAllUsers();
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/api/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Error al cargar lista de empresas');
+      
+      const data = await response.json();
       setUsers(data);
     } catch (error) {
       console.error(error);
       onNotify('Error al cargar datos de empresas', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,24 +71,21 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ businessId, o
     if (businessId) setSelectedBusinessId(businessId);
   }, [businessId]);
 
-  // Cargar historial cuando cambia la empresa seleccionada
-  useEffect(() => {
-    if (selectedBusinessId) {
-      getSubscriptionHistory(selectedBusinessId).then(setHistory);
-    }
-  }, [selectedBusinessId]);
-
   // Extraer lista única de empresas desde los usuarios
   const businesses = users
     .map(u => u.business)
-    .filter((b): b is NonNullable<UserWithBusiness['business']> => !!b)
+    .filter((b): b is Business => !!b)
     // Eliminar duplicados por ID
     .filter((b, index, self) => index === self.findIndex(t => t.id === b.id));
 
-  const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
+  // Comparación robusta convirtiendo ambos a String
+  const selectedBusiness = businesses.find(b => String(b.id) === String(selectedBusinessId));
 
   const handleUpdateSubscription = async (value: number | string) => {
-    if (!selectedBusinessId) return;
+    if (!selectedBusinessId) {
+      onNotify('⚠️ Selecciona una empresa primero', 'warning');
+      return;
+    }
     
     const monthsToAdd = Number(value);
     if (isNaN(monthsToAdd)) {
@@ -61,12 +95,25 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ businessId, o
 
     setLoading(true);
     try {
-      await addSubscriptionTime(selectedBusinessId, monthsToAdd);
-      onNotify(`✅ Suscripción ${monthsToAdd > 0 ? 'extendida' : 'ajustada'} correctamente`, 'success');
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/subscriptions/add-time`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        // Enviamos businessId asegurando que sea string o número según lo que tenga
+        body: JSON.stringify({ businessId: selectedBusinessId, months: monthsToAdd })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Error al actualizar');
+
+      onNotify(data.message || `✅ Suscripción ${monthsToAdd > 0 ? 'extendida' : 'ajustada'} correctamente`, 'success');
       await loadData(); // Recargar para ver la nueva fecha
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      onNotify('❌ Error al actualizar suscripción', 'error');
+      onNotify(error.message || '❌ Error al actualizar suscripción', 'error');
     } finally {
       setLoading(false);
     }
@@ -88,7 +135,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ businessId, o
               key={b.id}
               onClick={() => setSelectedBusinessId(b.id)}
               className={`p-4 rounded-2xl cursor-pointer transition-all border-2 group ${
-                selectedBusinessId === b.id
+                String(selectedBusinessId) === String(b.id)
                   ? 'border-blue-500 bg-blue-50 shadow-md'
                   : 'border-transparent hover:bg-slate-50 hover:border-slate-200'
               }`}

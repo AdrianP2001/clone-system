@@ -21,14 +21,14 @@ import { Client, Product, AppNotification, Document, DocumentType, SriStatus, Bu
 import { MOCK_CLIENTS, MOCK_PRODUCTS } from '../constants';
 
 import Login from './Login';
-<<<<<<< HEAD
 import ClientLogin from './ClientLogin';
 import ClientDashboard from './ClientDashboard';
-import SubscriptionManager from './SubscriptionManager';
 import AdminUsers from './AdminUsers';
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 import { client } from './api/client';
+import SubscriptionPage from './SubscriptionPage';
+import SaasAdmin from './SaasAdmin';
+import CompanyUsers from './CompanyUsers';
+import SalesSummary from './SalesSummary';
 
 // URL del backend definida en variable de entorno o fallback
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
@@ -38,15 +38,15 @@ const App: React.FC = () => {
   // ESTADO DE SEGURIDAD: Verificamos si existe el token al cargar
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState('dashboard');
-<<<<<<< HEAD
-  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
 
   // --- ESTADO DEL MODO DEMO ---
   // Por defecto false (Modo Producción).
-  const [isDemoMode, setIsDemoMode] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  });
 
   // Inicializamos vacíos para llenar con datos de la BD
   const [clients, setClients] = useState<Client[]>([]);
@@ -90,6 +90,11 @@ const App: React.FC = () => {
   const [signatureBuffer, setSignatureBuffer] = useState<ArrayBuffer | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  
+  // Estado para gestión de perfil personal
+  const [personalEmail, setPersonalEmail] = useState('');
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
 
   const [notifications, setNotifications] = useState<AppNotification[]>([
     { id: '1', text: 'Bienvenido al sistema Ecuafact Pro', type: 'info', time: new Date(), read: false },
@@ -114,8 +119,22 @@ const App: React.FC = () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       setCurrentUser(JSON.parse(userStr));
+      const userObj = JSON.parse(userStr);
+      if (userObj.email) setPersonalEmail(userObj.email);
     }
   }, [isAuthenticated]);
+
+  // Efecto para aplicar el modo oscuro basado en la configuración de la empresa
+  useEffect(() => {
+    const features = (businessInfo as any).features;
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = features?.isDarkMode !== undefined ? features.isDarkMode : systemPrefersDark;
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [businessInfo]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -134,8 +153,9 @@ const App: React.FC = () => {
           address: 'Modo Demostración',
           email: 'demo@ecuafact.com',
           phone: '0999999999',
-          logo: ''
-        });
+          logo: '',
+          features: { inventory: true, accounting: true, billing: true, isDarkMode: false }
+        } as any);
         return;
       }
       // CASO B: MODO REAL (Cargar desde BD)
@@ -154,11 +174,33 @@ const App: React.FC = () => {
         setProducts(productos);
         setDocuments(docs); console.log("✅ Datos cargados desde la Base de Datos");
 
+        // Restaurar firma si existe en features
+        const features = (empresa as any).features || {};
+        if (features.signatureP12) {
+          try {
+            const byteCharacters = atob(features.signatureP12);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/x-pkcs12' });
+            const file = new File([blob], "firma_digital.p12", { type: 'application/x-pkcs12' });
+            setSignatureFile(file);
+            setSignatureBuffer(byteArray.buffer);
+            if (features.signaturePassword) {
+              setSignaturePassword(features.signaturePassword);
+            }
+          } catch (e) {
+            console.error("Error restaurando firma:", e);
+          }
+        }
+
       } catch (error) {
         console.error("❌ Error conectando a DB:", error);
         // Opcional: Si falla la DB, ¿quieres pasar a Demo automáticamente?
         // setIsDemoMode(true); 
-        alert("Error de conexión con el servidor. Revise su internet.");
+        showNotify("Error de conexión con el servidor. Revise su internet.", "error");
       }
     };
 
@@ -175,6 +217,18 @@ const App: React.FC = () => {
       try {
         const buffer = await file.arrayBuffer();
         setSignatureBuffer(buffer);
+        
+        // Convertir a Base64 para guardar en features
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          setBusinessInfo(prev => ({
+            ...prev,
+            features: { ...((prev as any).features || {}), signatureP12: base64 }
+          }));
+        };
+
         showNotify('Firma digital cargada correctamente');
       } catch (error) {
         showNotify('Error al cargar la firma digital', 'error');
@@ -184,7 +238,6 @@ const App: React.FC = () => {
 
   // ⚡ HANDLER AUTORIZACIÓN: Guarda en BD
   const handleDocumentAuthorized = async (doc: Document, items?: InvoiceItem[]) => {
-<<<<<<< HEAD
     // MODO DEMO: Guardado local simulado (Memoria)
     if (isDemoMode) {
       setDocuments(prev => [doc, ...prev]);
@@ -199,15 +252,12 @@ const App: React.FC = () => {
       return;
     }
 
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     if (!signatureFile && businessInfo.isProduction) {
       showNotify("Firma requerida para producción", "error");
       return;
     }
 
     try {
-<<<<<<< HEAD
       const token = localStorage.getItem('token');
       // 1. Intentar guardar en Base de Datos
       const response = await fetch(`${API_URL}/api/documents`, {
@@ -216,12 +266,6 @@ const App: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-=======
-      // 1. Intentar guardar en Base de Datos
-      const response = await fetch(`${API_URL}/api/documents`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         body: JSON.stringify({ ...doc, items })
       });
 
@@ -233,13 +277,9 @@ const App: React.FC = () => {
 
       // 3. Recargar productos para actualizar stock
       if (items) {
-<<<<<<< HEAD
         const prodRes = await fetch(`${API_URL}/api/products`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-=======
-        const prodRes = await fetch(`${API_URL}/api/products`);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         if (prodRes.ok) setProducts(await prodRes.json());
       }
 
@@ -260,19 +300,64 @@ const App: React.FC = () => {
     }
   };
 
-  const toggleEnvironment = () => {
+  const toggleEnvironment = async () => {
     const nextState = !businessInfo.isProduction;
     if (nextState && !signatureFile) {
       showNotify("Sube tu firma .p12 para activar PRODUCCIÓN", "warning");
     }
     setBusinessInfo(prev => ({ ...prev, isProduction: nextState }));
-    showNotify(`Modo ${nextState ? 'PRODUCCIÓN' : 'PRUEBAS'} activo`);
+    
+    // Guardar inmediatamente en BD
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/api/business`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isProduction: nextState })
+      });
+      showNotify(`Modo ${nextState ? 'PRODUCCIÓN' : 'PRUEBAS'} activo y guardado`);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const toggleDarkMode = async () => {
+    const currentFeatures = (businessInfo as any).features || {};
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const currentIsDark = currentFeatures.isDarkMode !== undefined ? currentFeatures.isDarkMode : systemPrefersDark;
+    const newIsDark = !currentIsDark;
+    
+    const updatedFeatures = {
+      ...currentFeatures,
+      isDarkMode: newIsDark
+    };
+
+    setBusinessInfo(prev => ({ ...prev, features: updatedFeatures }));
+    
+    showNotify(newIsDark ? "Modo oscuro activado 🌙" : "Modo claro activado ☀️");
+
+    // Guardar preferencia en BD inmediatamente
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/api/business`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ features: updatedFeatures })
+      });
+    } catch (error) {
+      console.error("Error guardando preferencia de tema", error);
+    }
   };
 
   // 💾 GUARDAR CONFIGURACIÓN EMPRESARIAL
   const saveBusinessConfig = async () => {
     try {
-<<<<<<< HEAD
       const token = localStorage.getItem('token');
       // Excluir el ID del objeto para evitar errores de actualización en Prisma
       const { id, ...dataToSave } = businessInfo as any;
@@ -283,12 +368,6 @@ const App: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(dataToSave)
-=======
-      const response = await fetch(`${API_URL}/api/business`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(businessInfo)
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
       });
 
       if (!response.ok) throw new Error('Error en servidor');
@@ -297,6 +376,71 @@ const App: React.FC = () => {
     } catch (error) {
       console.error(error);
       showNotify("Error al guardar configuración", "error");
+    }
+  };
+
+  // 👤 ACTUALIZAR PERFIL PERSONAL
+  const handleUpdateProfile = async () => {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/user/profile`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ email: personalEmail })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showNotify('Correo personal actualizado correctamente');
+            // Actualizar estado local y storage
+            const newUser = { ...currentUser, email: data.user.email };
+            localStorage.setItem('user', JSON.stringify(newUser));
+            setCurrentUser(newUser);
+        } else {
+            showNotify(data.message, 'error');
+        }
+    } catch (error) {
+        showNotify('Error al actualizar perfil', 'error');
+    }
+  };
+
+  // 🔐 CAMBIAR CONTRASEÑA
+  const handleChangePassword = async () => {
+    if (passwordData.new !== passwordData.confirm) {
+        showNotify('Las contraseñas nuevas no coinciden', 'error');
+        return;
+    }
+
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(passwordData.new)) {
+        showNotify('La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.', 'error');
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/user/password`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ 
+                currentPassword: passwordData.current,
+                newPassword: passwordData.new
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showNotify('Contraseña actualizada correctamente');
+            setPasswordData({ current: '', new: '', confirm: '' });
+        } else {
+            showNotify(data.message, 'error');
+        }
+    } catch (error) {
+        showNotify('Error al cambiar contraseña', 'error');
     }
   };
 
@@ -312,7 +456,6 @@ const App: React.FC = () => {
         notificationSettings: settings
       };
 
-<<<<<<< HEAD
       const token = localStorage.getItem('token');
       // 3. Enviar al backend
       const response = await fetch(`${API_URL}/api/business`, {
@@ -321,12 +464,6 @@ const App: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-=======
-      // 3. Enviar al backend
-      const response = await fetch(`${API_URL}/api/business`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
         body: JSON.stringify(updatedBusinessInfo)
       });
 
@@ -343,7 +480,6 @@ const App: React.FC = () => {
 
   // ESTADO DE SEGURIDAD: Verificamos si existe el token al cargar
   //LA COMPUERTA (Inserta esto ANTES del 'return' principal)
-<<<<<<< HEAD
   
   // 1. Ruta pública para Portal de Clientes
   if (window.location.pathname === '/portal/login') {
@@ -353,16 +489,26 @@ const App: React.FC = () => {
   if (window.location.pathname === '/portal/dashboard') {
     return <ClientDashboard />;
   }
+  // 3. Ruta pública para Suscripciones
+  if (window.location.pathname === '/suscripcion') {
+    return <SubscriptionPage />;
+  }
 
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   if (!isAuthenticated) {
     return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
   }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard documents={documents} products={products} setActiveTab={setActiveTab} />;
+      case 'dashboard': 
+        return (
+          <div className="space-y-6">
+             {/* Mostrar resumen de ventas solo a administradores */}
+             {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && <SalesSummary documents={documents} />}
+             <Dashboard documents={documents} products={products} setActiveTab={setActiveTab} />
+          </div>
+        );
+
       case 'invoices': return <InvoiceForm clients={clients} products={products} businessInfo={businessInfo} signatureFile={signatureFile} signaturePassword={signaturePassword} notificationSettings={notificationSettings} onNotify={showNotify} onAuthorize={handleDocumentAuthorized} />;
       case 'credit-notes': return (
         <CreditNoteForm
@@ -387,24 +533,27 @@ const App: React.FC = () => {
       case 'kardex': return <Kardex products={products} documents={documents} onNotify={showNotify} />;
       case 'profitability': return <ProfitabilityAnalysis products={products} documents={documents} onNotify={showNotify} />;
       case 'notifications': return <NotificationSettingsComponent settings={notificationSettings} onSave={handleSaveNotificationSettings} onNotify={showNotify} />;
-<<<<<<< HEAD
       case 'reports': return <Reports documents={documents} businessInfo={businessInfo} />;      case 'ai-assistant': return <AIAssistant businessInfo={businessInfo} />;
-      // Pasamos el ID seleccionado al Manager de Suscripciones
-      case 'admin-subscriptions': return <SubscriptionManager businessId={selectedBusinessId} onNotify={showNotify} />;
-      // Pasamos la función para navegar a suscripciones
-      case 'admin-users': return <AdminUsers onManageSubscription={(id) => { setSelectedBusinessId(id); setActiveTab('admin-subscriptions'); }} />;
+      
+      // NUEVO MÓDULO SAAS UNIFICADO (Reemplaza a admin-users y admin-subscriptions)
+      case 'saas-admin': return <SaasAdmin onNotify={showNotify} />;
+      case 'admin-subscriptions': return <SaasAdmin onNotify={showNotify} />; // Redirección por compatibilidad
+      case 'admin-users': return <SaasAdmin onNotify={showNotify} />; // Redirección por compatibilidad
 
+      case 'company-users': 
+        // SEGURIDAD: Solo Admins pueden ver esto
+        if (currentUser?.role === 'USER') {
+          showNotify('No tienes permisos para acceder a este módulo', 'error');
+          return <Dashboard documents={documents} products={products} setActiveTab={setActiveTab} />;
+        }
+        return <CompanyUsers onNotify={showNotify} />;
       
       case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} isDemoMode={isDemoMode}/>;
       case 'products': return <ProductManager products={products} setProducts={setProducts} onNotify={showNotify} isDemoMode={isDemoMode} />;
-=======
-      case 'reports': return <Reports documents={documents} businessInfo={businessInfo} />;
-      case 'ai-assistant': return <AIAssistant />;
-      case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} />;
-      case 'products': return <ProductManager products={products} setProducts={setProducts} onNotify={showNotify} />;
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
       case 'integrations': return <Integrations products={products} clients={clients} businessInfo={businessInfo} onOrderAuthorized={handleDocumentAuthorized} onNotify={showNotify} onUpdateProducts={setProducts} />;
       case 'config':
+
+        const isUserAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN';
 
         return (
           <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
@@ -413,10 +562,10 @@ const App: React.FC = () => {
               <div className="flex items-center gap-6">
                 <div
                   className="w-24 h-24 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] flex items-center justify-center cursor-pointer overflow-hidden group relative"
-                  onClick={() => logoInputRef.current?.click()}
+                  onClick={() => isUserAdmin && logoInputRef.current?.click()}
                 >
                   {businessInfo.logo ? <img src={businessInfo.logo} className="w-full h-full object-cover" /> : <span className="text-3xl opacity-20">📸</span>}
-                  <div className="absolute inset-0 bg-blue-600/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-black text-white uppercase">Editar</div>
+                  {isUserAdmin && <div className="absolute inset-0 bg-blue-600/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-black text-white uppercase">Editar</div>}
                   <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file && file instanceof File) {
@@ -431,6 +580,7 @@ const App: React.FC = () => {
                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">RUC: {businessInfo.ruc}</p>
                 </div>
               </div>
+              {isUserAdmin && (
               <div className="flex gap-4">
                 <button
                   onClick={() => {
@@ -444,6 +594,12 @@ const App: React.FC = () => {
                   {businessInfo.taxpayerType === 'EMPRESA' ? '🏢 Empresa' : '👤 Persona Natural'}
                 </button>
                 <button
+                  onClick={toggleDarkMode}
+                  className={`px-8 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl ${(businessInfo as any).features?.isDarkMode ? 'bg-slate-800 text-white shadow-slate-200' : 'bg-yellow-400 text-white shadow-yellow-100'}`}
+                >
+                  {(businessInfo as any).features?.isDarkMode ? '🌙 Modo Oscuro' : '☀️ Modo Claro'}
+                </button>
+                <button
                   onClick={toggleEnvironment}
                   className={`px-8 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl ${businessInfo.isProduction ? 'bg-emerald-600 text-white shadow-emerald-100' : 'bg-amber-500 text-white shadow-amber-100'
                     }`}
@@ -451,11 +607,13 @@ const App: React.FC = () => {
                   {businessInfo.isProduction ? '🚀 Ambiente Producción' : '🧪 Ambiente Pruebas'}
                 </button>
               </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 {/* Datos Tributarios */}
+                {isUserAdmin && (
                 <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
                   <h3 className="font-black text-slate-800 text-xl uppercase tracking-tighter border-b border-slate-50 pb-4 flex items-center gap-3">
                     <span className="text-blue-500">📄</span> Información Legal (SRI)
@@ -522,8 +680,10 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </section>
+                )}
 
                 {/* Regímenes y Resoluciones */}
+                {isUserAdmin && (
                 <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
                   <h3 className="font-black text-slate-800 text-xl uppercase tracking-tighter border-b border-slate-50 pb-4 flex items-center gap-3">
                     <span className="text-emerald-500">🛡️</span> Regímenes Especiales
@@ -548,9 +708,90 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </section>
+                )}
+
+                {/* SECCIÓN: MI CUENTA PERSONAL */}
+                <section className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
+                  <h3 className="font-black text-slate-800 text-xl uppercase tracking-tighter border-b border-slate-50 pb-4 flex items-center gap-3">
+                    <span className="text-purple-500">👤</span> Mi Cuenta (Acceso Personal)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Correo Electrónico Personal (Login)</label>
+                        <div className="flex gap-2">
+                            <input 
+                                type="email" 
+                                value={personalEmail} 
+                                onChange={(e) => setPersonalEmail(e.target.value)}
+                                className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-purple-500 transition-colors" 
+                            />
+                            <button onClick={handleUpdateProfile} className="px-6 bg-purple-100 text-purple-600 rounded-2xl font-bold text-xs hover:bg-purple-200 transition-colors">
+                                Guardar
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 ml-1">Este correo es para iniciar sesión y recuperar contraseña. No aparece en las facturas.</p>
+                    </div>
+
+                    <div className="pt-6 border-t border-slate-50">
+                        <h4 className="text-sm font-black text-slate-700 mb-4">Cambiar Contraseña</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="relative">
+                              <input 
+                                  type={showProfilePassword ? "text" : "password"} 
+                                  placeholder="Contraseña Actual"
+                                  value={passwordData.current}
+                                  onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
+                                  className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-purple-500 transition-colors pr-10" 
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowProfilePassword(!showProfilePassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                              >
+                                <span className="material-symbols-outlined text-lg">{showProfilePassword ? 'visibility_off' : 'visibility'}</span>
+                              </button>
+                            </div>
+                            <div className="relative">
+                              <input 
+                                  type={showProfilePassword ? "text" : "password"} 
+                                  placeholder="Nueva Contraseña"
+                                  value={passwordData.new}
+                                  onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
+                                  className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-purple-500 transition-colors pr-10" 
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowProfilePassword(!showProfilePassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                              >
+                                <span className="material-symbols-outlined text-lg">{showProfilePassword ? 'visibility_off' : 'visibility'}</span>
+                              </button>
+                            </div>
+                            <div className="relative">
+                              <input 
+                                  type={showProfilePassword ? "text" : "password"} 
+                                  placeholder="Confirmar Nueva"
+                                  value={passwordData.confirm}
+                                  onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
+                                  className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-purple-500 transition-colors" 
+                              />
+                            </div>
+                        </div>
+                        <button 
+                            onClick={handleChangePassword}
+                            disabled={!passwordData.current || !passwordData.new}
+                            className="mt-4 w-full md:w-auto px-8 py-3 bg-slate-800 text-white rounded-2xl font-bold text-xs hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
+                        >
+                            Actualizar Contraseña
+                        </button>
+                    </div>
+                  </div>
+                </section>
               </div>
 
               {/* Sidebar de Configuración */}
+              {isUserAdmin && (
               <div className="space-y-8">
                 <section className="bg-slate-900 text-white p-10 rounded-[3rem] space-y-8 shadow-2xl">
                   <div className="flex items-center justify-between border-b border-white/10 pb-6">
@@ -574,7 +815,13 @@ const App: React.FC = () => {
                         type="password"
                         placeholder="••••••••"
                         value={signaturePassword}
-                        onChange={e => setSignaturePassword(e.target.value)}
+                        onChange={e => {
+                          setSignaturePassword(e.target.value);
+                          setBusinessInfo(prev => ({
+                            ...prev,
+                            features: { ...((prev as any).features || {}), signaturePassword: e.target.value }
+                          }));
+                        }}
                         className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-sm focus:border-blue-500 outline-none"
                       />
                     </div>
@@ -592,10 +839,11 @@ const App: React.FC = () => {
                   Guardar Cambios Legales
                 </button>
               </div>
+              )}
             </div>
           </div>
         );
-      default: return <Dashboard documents={documents} products={products} setActiveTab={setActiveTab} />;
+      default: return <Dashboard documents={documents} products={products} setActiveTab={setActiveTab} />; // Fallback
     }
   };
 
@@ -607,34 +855,32 @@ const App: React.FC = () => {
       businessInfo={businessInfo}
       onMarkRead={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
       onRemoveNotif={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
+      currentUser={currentUser}
     >
       {renderContent()}
 
       {/* --- EL BOTÓN SECRETO DEL SUPERADMIN --- */}
       {currentUser?.role === 'SUPERADMIN' && (
-<<<<<<< HEAD
         <div className="fixed top-5 right-24 z-[9999] flex items-center gap-3 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-slate-200">
-          <span className={`text-[10px] font-black uppercase tracking-widest ${isDemoMode ? 'text-orange-500' : 'text-emerald-600'}`}>
-            {isDemoMode ? 'Modo Demo' : 'Modo Live'}
-          </span>
           <button
-            onClick={() => setActiveTab('admin-subscriptions')}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors"
+            onClick={toggleDarkMode}
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors"
           >
-            Suscripciones
+            {((businessInfo as any).features?.isDarkMode ?? window.matchMedia('(prefers-color-scheme: dark)').matches) ? '☀️ Claro' : '🌙 Oscuro'}
           </button>
+          
+          {/* Botón Toggle Modo Demo/Producción */}
           <button
-            onClick={() => setActiveTab('admin-users')}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors"
-          >
-            Usuarios
-          </button>
-          <button
-            onClick={() => setIsDemoMode(!isDemoMode)}
+            onClick={() => {
+              const newState = !isDemoMode;
+              setIsDemoMode(newState);
+              showNotify(newState ? "Modo DEMO activado" : "Modo PRODUCCIÓN activado", "info");
+            }}
             className={`
               w-10 h-5 rounded-full p-0.5 transition-colors duration-300 focus:outline-none
               ${isDemoMode ? 'bg-orange-400' : 'bg-emerald-500'}
             `}
+            title={isDemoMode ? "Cambiar a Producción" : "Cambiar a Demo"}
           >
             <div 
               className={`
@@ -642,19 +888,6 @@ const App: React.FC = () => {
                 ${isDemoMode ? 'translate-x-0' : 'translate-x-5'}
               `} 
             />
-=======
-        <div className="fixed bottom-4 left-4 z-[9999]">
-          <button
-            onClick={() => setIsDemoMode(!isDemoMode)}
-            className={`
-              px-4 py-2 rounded-full font-bold shadow-2xl transition-all 
-              ${isDemoMode
-                ? 'bg-orange-500 text-white hover:bg-orange-600 ring-4 ring-orange-200'
-                : 'bg-green-600 text-white hover:bg-green-700 ring-4 ring-green-200'}
-            `}
-          >
-            {isDemoMode ? '🚧 MODO DEMO' : '🚀 MODO LIVE'}
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           </button>
         </div>
       )}

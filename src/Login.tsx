@@ -10,9 +10,9 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-<<<<<<< HEAD
     const [view, setView] = useState<'login' | 'forgot'>('login');
     const [resetEmail, setResetEmail] = useState('');
     const [resetMessage, setResetMessage] = useState('');
@@ -39,8 +39,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             setLoading(false);
         }
     };
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,6 +63,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 localStorage.setItem('user', JSON.stringify(data.user));
             }
 
+            console.log('✅ Login exitoso en Frontend:', data.user);
             onLoginSuccess();
 
         } catch (err: any) {
@@ -75,7 +74,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         }
     };
 
-<<<<<<< HEAD
     if (view === 'forgot') {
         return (
             <div className="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-100 h-screen w-full flex items-center justify-center selection:bg-primary selection:text-white relative overflow-hidden">
@@ -126,8 +124,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         );
     }
 
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     return (
         <div className="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-100 h-screen w-full flex items-center justify-center selection:bg-primary selection:text-white relative overflow-hidden">
 
@@ -188,12 +184,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="password">
                                         Contraseña
                                     </label>
-<<<<<<< HEAD
                                     <button type="button" onClick={() => setView('forgot')} className="text-xs font-medium text-primary hover:text-blue-600 hover:underline">
                                         ¿Olvidaste tu contraseña?
                                     </button>
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
                                 </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
@@ -202,14 +195,23 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                     <input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         autoComplete="current-password"
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg leading-5 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition duration-150 ease-in-out"
+                                        className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg leading-5 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition duration-150 ease-in-out"
                                         placeholder="••••••••"
                                     />
+                                    <button
+                                        type="button"
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        <span className="material-icons-outlined text-xl">
+                                            {showPassword ? 'visibility_off' : 'visibility'}
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -243,14 +245,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                         </>
                                     )}
                                 </button>
-<<<<<<< HEAD
                                 <div className="mt-4 text-center">
                                     <a href="/portal/login" className="text-sm text-gray-500 hover:text-primary transition-colors font-medium">
                                         ¿Eres cliente? <span className="underline">Ingresa al Portal aquí</span>
                                     </a>
                                 </div>
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
                             </div>
                         </form>
 

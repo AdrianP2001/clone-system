@@ -28,11 +28,7 @@ function validateXmlStructure(xml) {
   ];
   
   requiredFields.forEach(field => {
-<<<<<<< HEAD
     const regex = new RegExp(`<${field}>\\s*(.+?)\\s*<\\/${field}>`);
-=======
-    const regex = new RegExp(`<${field}>(.+?)<\/${field}>`);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     const match = xml.match(regex);
     if (!match || !match[1] || match[1].trim() === '') {
       errors.push(`Campo obligatorio faltante o vacío: ${field}`);
@@ -40,21 +36,13 @@ function validateXmlStructure(xml) {
   });
   
   // Validar formato de RUC (13 dígitos)
-<<<<<<< HEAD
   const rucMatch = xml.match(/<ruc>\s*(\d+)\s*<\/ruc>/);
-=======
-  const rucMatch = xml.match(/<ruc>(\d+)<\/ruc>/);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   if (rucMatch && rucMatch[1].length !== 13) {
     errors.push('RUC debe tener exactamente 13 dígitos');
   }
   
   // Validar formato de clave de acceso (49 dígitos)
-<<<<<<< HEAD
   const claveMatch = xml.match(/<claveAcceso>\s*(\d+)\s*<\/claveAcceso>/);
-=======
-  const claveMatch = xml.match(/<claveAcceso>(\d+)<\/claveAcceso>/);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   if (claveMatch && claveMatch[1].length !== 49) {
     errors.push('Clave de acceso debe tener exactamente 49 dígitos');
   }
@@ -65,11 +53,7 @@ function validateXmlStructure(xml) {
   }
   
   // Validar totales
-<<<<<<< HEAD
   const totalMatch = xml.match(/<importeTotal>\s*(.+?)\s*<\/importeTotal>/);
-=======
-  const totalMatch = xml.match(/<importeTotal>(.+?)<\/importeTotal>/);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   if (totalMatch) {
     const total = parseFloat(totalMatch[1]);
     if (isNaN(total) || total <= 0) {

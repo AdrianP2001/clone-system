@@ -11,11 +11,8 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const morgan = require('morgan');
-<<<<<<< HEAD
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const bcrypt = require('bcryptjs');
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 const {
   validateXmlStructure,
   retryWithBackoff,
@@ -28,10 +25,7 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3001;
 const verifyToken = require('./auth/jwt.middleware');
-<<<<<<< HEAD
 const authController = require('./auth/auth.controller'); // Importamos controlador para ruta manual
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
 // Middleware de seguridad
 app.use(helmet());
@@ -57,20 +51,22 @@ const limiter = rateLimit({
 });
 app.use('/api/sri/', limiter);
 
-//Login
-try {
-  app.use('/api', require('./auth/auth.routes'));
-  console.log('✅ Módulo de Autenticación cargado');
-} catch (error) {
-  console.error('❌ Error cargando Auth:', error.message);
-}
-
-<<<<<<< HEAD
 // Ruta manual para Login de Clientes (Portal)
+// ============================================
+// RUTAS DE AUTENTICACIÓN
+// ============================================
+app.post('/api/login', authController.login);
+app.post('/api/register', authController.register); // Ruta pública de registro
+app.post('/api/forgot-password', authController.forgotPassword);
+app.post('/api/reset-password', authController.resetPassword);
 app.post('/api/auth/client/login', authController.clientLogin);
+app.post('/api/auth/client/forgot-password', authController.clientForgotPassword);
+app.post('/api/auth/client/change-password', authController.changeClientPassword);
 
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
+// Rutas de Perfil de Usuario (Self-Service)
+app.put('/api/user/profile', verifyToken, authController.updateUserProfile);
+app.put('/api/user/password', verifyToken, authController.changeUserPassword);
+
 // Middleware de autenticación (opcional para producción)
 const authenticate = (req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
@@ -85,21 +81,18 @@ const authenticate = (req, res, next) => {
   next();
 };
 
-<<<<<<< HEAD
 // Middleware para verificar roles (RBAC)
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'Acceso denegado. No tienes permisos suficientes.' 
+      return res.status(403).json({
+        message: 'Acceso denegado. No tienes permisos suficientes.'
       });
     }
     next();
   };
 };
 
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 // Endpoints del SRI
 const SRI_ENDPOINTS = {
   TEST: {
@@ -117,11 +110,7 @@ const SRI_ENDPOINTS = {
 // ============================================
 app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
   try {
-<<<<<<< HEAD
     const { xml, p12Base64, password, isProduction } = req.body;
-=======
-    const { xml, p12Base64, password } = req.body;
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     if (!xml || !p12Base64 || !password) {
       return res.status(400).json({
@@ -176,7 +165,6 @@ app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
     console.log(certStatus.message);
 
     if (certStatus.isExpired) {
-<<<<<<< HEAD
       // LÓGICA DE MODO: Producción vs Demo
       if (isProduction) {
         return res.status(400).json({
@@ -187,13 +175,6 @@ app.post('/api/sri/sign-xml', authenticate, async (req, res) => {
       } else {
         console.warn('⚠️ [SIMULACIÓN] Permitiendo certificado expirado en modo DEMO para pruebas.');
       }
-=======
-      return res.status(400).json({
-        success: false,
-        error: certStatus.message,
-        certificateInfo: certStatus
-      });
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     }
 
     // Alerta si está por vencer
@@ -372,16 +353,12 @@ ${certBase64}
     // Serializar el DOM actualizado (con id="comprobante" agregado)
     const { XMLSerializer } = require('xmldom');
     const serializer = new XMLSerializer();
-<<<<<<< HEAD
     let xmlString = serializer.serializeToString(xmlDoc);
 
     // Asegurar declaración XML
     if (!xmlString.startsWith('<?xml')) {
       xmlString = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlString;
     }
-=======
-    const xmlString = serializer.serializeToString(xmlDoc);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     // Insertar firma en el XML actualizado
     const signedXml = xmlString.replace(/<\/(factura|notaCredito)>/, `${signatureBlock}</$1>`);
@@ -431,13 +408,8 @@ app.post('/api/sri/recepcion', authenticate, async (req, res) => {
       ? SRI_ENDPOINTS.PROD.RECEPCION
       : SRI_ENDPOINTS.TEST.RECEPCION;
 
-<<<<<<< HEAD
     console.log(`📡 Conectando a Recepción SRI (${isProduction ? 'PRODUCCIÓN REAL' : 'SIMULACIÓN/PRUEBAS'})...`);
     console.log(` Endpoint: ${endpoint}`);
-=======
-    console.log(`📡 Conectando a Recepción SRI (${isProduction ? 'PRODUCCIÓN' : 'PRUEBAS'})...`);
-    console.log(`🔗 Endpoint: ${endpoint}`);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 
     // ============================================
     // USAR RETRY LOGIC CON BACKOFF EXPONENCIAL
@@ -524,11 +496,7 @@ app.post('/api/sri/autorizacion', authenticate, async (req, res) => {
       ? SRI_ENDPOINTS.PROD.AUTORIZACION
       : SRI_ENDPOINTS.TEST.AUTORIZACION;
 
-<<<<<<< HEAD
     console.log(`🔍 Consultando autorización: ${claveAcceso.substring(0, 15)}... (${isProduction ? 'PRODUCCIÓN REAL' : 'SIMULACIÓN/PRUEBAS'})`);
-=======
-    console.log(`🔍 Consultando autorización: ${claveAcceso.substring(0, 15)}...`);
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     console.log(`🔗 Endpoint: ${endpoint}`);
 
     // ============================================
@@ -885,7 +853,6 @@ app.post('/api/notifications/send-email', authenticate, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 // backend/server.js
 
 // ============================================
@@ -895,42 +862,63 @@ app.post('/api/notifications/send-email', authenticate, async (req, res) => {
 // 1. Crear Nueva Empresa (Tenant)
 app.post('/api/admin/businesses', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
   try {
-    const { name, ruc, email, address, phone, plan, features, subscriptionEnd } = req.body;
-    
+    const { name, ruc, email, address, phone, plan, features, subscriptionEnd, password } = req.body;
+
+    // Validaciones previas
     const existing = await prisma.business.findUnique({ where: { ruc } });
     if (existing) return res.status(400).json({ message: 'La empresa ya existe con este RUC' });
 
-    const newBusiness = await prisma.business.create({
-      data: {
-        name,
-        ruc,
-        email,
-        address,
-        phone,
-        plan: plan || 'BASIC',
-        features: features || { inventory: true, accounting: false, billing: true }, // Permisos por defecto
-        subscriptionStart: new Date(),
-        subscriptionEnd: subscriptionEnd ? new Date(subscriptionEnd) : new Date(new Date().setMonth(new Date().getMonth() + 1)), // 1 mes por defecto
-        subscriptionStatus: 'ACTIVE',
-        isActive: true,
-        establishmentCode: '001',
-        emissionPointCode: '001',
-        isAccountingObliged: false
-      }
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) return res.status(400).json({ message: 'El correo electrónico ya está registrado por un usuario.' });
+
+    // Transacción: Empresa + Secuenciales + Usuario Admin
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Crear Empresa
+      const newBusiness = await tx.business.create({
+        data: {
+          name,
+          ruc,
+          email,
+          address,
+          phone,
+          plan: plan || 'BASIC',
+          features: features || { inventory: true, accounting: false, billing: true }, // Permisos por defecto
+          subscriptionStart: new Date(),
+          subscriptionEnd: subscriptionEnd ? new Date(subscriptionEnd) : new Date(new Date().setMonth(new Date().getMonth() + 1)), // 1 mes por defecto
+          subscriptionStatus: 'ACTIVE',
+          isActive: true,
+          establishmentCode: '001',
+          emissionPointCode: '001',
+          isAccountingObliged: false
+        }
+      });
+
+      // 2. Crear Secuenciales
+      await tx.sequence.create({
+        data: {
+          type: '01', // Factura
+          establishmentCode: '001',
+          emissionPointCode: '001',
+          currentValue: 1,
+          businessId: newBusiness.id
+        }
+      });
+
+      // 3. Crear Usuario Admin
+      const hashedPassword = await bcrypt.hash(password || ruc, 10); // Si no hay pass, usa el RUC
+      await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role: 'ADMIN',
+          businessId: String(newBusiness.id)
+        }
+      });
+
+      return newBusiness;
     });
 
-    // Crear secuenciales por defecto para la nueva empresa
-    await prisma.sequence.create({
-      data: {
-        type: '01', // Factura
-        establishmentCode: '001',
-        emissionPointCode: '001',
-        currentValue: 1,
-        businessId: newBusiness.id
-      }
-    });
-
-    res.json(newBusiness);
+    res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -970,6 +958,19 @@ app.get('/api/admin/subscriptions/expiring', verifyToken, checkRole(['SUPERADMIN
   }
 });
 
+// 1.3 Listar todas las empresas (Para dropdown de creación de usuarios)
+app.get('/api/admin/businesses', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const businesses = await prisma.business.findMany({
+      select: { id: true, name: true, ruc: true },
+      orderBy: { name: 'asc' }
+    });
+    res.json(businesses);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // 1.1 Actualizar Empresa y Permisos (Superadmin)
 app.put('/api/admin/businesses/:id', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
   try {
@@ -998,23 +999,46 @@ app.post('/api/admin/users', verifyToken, checkRole(['SUPERADMIN']), async (req,
   try {
     const { email, password, businessId, role } = req.body;
 
+    // 1. Validación básica
+    if (!email || !password) {
+      return res.status(400).json({ message: 'El correo y la contraseña son obligatorios.' });
+    }
+
+    console.log(`👤 Creando usuario: ${email} | Rol: ${role} | BusinessID: ${businessId}`);
+
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) return res.status(400).json({ message: 'El usuario ya existe' });
+    if (existingUser) return res.status(400).json({ message: 'El usuario ya existe con este correo.' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Validación de lógica de negocio
+    let finalBusinessId = businessId;
+    if (role === 'SUPERADMIN') {
+      // Los nuevos Superadmins heredan la empresa del creador (o null si es legacy)
+      finalBusinessId = req.user.businessId;
+    } else if (!businessId) {
+      return res.status(400).json({ message: 'Se requiere asignar una empresa para usuarios ADMIN.' });
+    }
+
+    // Asegurar que sea String o Null (Prisma espera String para User.businessId)
+    const businessIdValue = finalBusinessId ? String(finalBusinessId) : null;
 
     const newUser = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         role: role || 'ADMIN', // Por defecto ADMIN de empresa
-        businessId: businessId // Vinculación a la empresa creada
+        businessId: businessIdValue // Vinculación a la empresa creada
       }
     });
 
+    console.log(`✅ Usuario creado exitosamente: ID ${newUser.id}`);
+
     res.json({ success: true, user: { id: newUser.id, email: newUser.email, role: newUser.role, businessId: newUser.businessId } });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('❌ Error al crear usuario:', e);
+    // Devolver 'message' para que el frontend lo muestre correctamente
+    res.status(500).json({ message: e.message || 'Error interno del servidor', error: e.message });
   }
 });
 
@@ -1035,7 +1059,7 @@ app.get('/api/admin/users', verifyToken, checkRole(['SUPERADMIN']), async (req, 
       },
       orderBy: { email: 'asc' }
     });
-    
+
     // Sanitizar passwords antes de enviar
     const safeUsers = users.map(u => {
       const { password, ...userWithoutPass } = u;
@@ -1043,6 +1067,54 @@ app.get('/api/admin/users', verifyToken, checkRole(['SUPERADMIN']), async (req, 
     });
 
     res.json(safeUsers);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 7. Eliminar Usuario (Superadmin)
+app.delete('/api/admin/users/:id', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = String(id);
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    // Protección para el Superadmin principal
+    if (user.email === 'superadmin@admin.com') {
+      return res.status(403).json({ message: 'No se puede eliminar al Superadmin principal.' });
+    }
+
+    await prisma.user.delete({ where: { id: userId } });
+    res.json({ success: true, message: 'Usuario eliminada correctamente' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 8. Eliminar Empresa (Superadmin)
+app.delete('/api/admin/businesses/:id', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const business = await prisma.business.findUnique({ where: { id: String(id) } });
+
+    if (!business) return res.status(404).json({ message: 'Empresa no encontrada' });
+
+    if (business.ruc === '9999999999999') {
+      return res.status(403).json({ message: 'No se puede eliminar la Empresa SaaS Global.' });
+    }
+
+    // Eliminar usuarios asociados primero para mantener integridad (si no hay cascade)
+    // También eliminamos otros registros dependientes para evitar errores de FK
+    await prisma.sequence.deleteMany({ where: { businessId: String(id) } });
+    await prisma.client.deleteMany({ where: { businessId: String(id) } });
+    await prisma.product.deleteMany({ where: { businessId: String(id) } });
+    // Finalmente usuarios y la empresa
+    await prisma.user.deleteMany({ where: { businessId: String(id) } });
+    await prisma.business.delete({ where: { id: String(id) } });
+
+    res.json({ success: true, message: 'Empresa y sus usuarios eliminados correctamente' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -1064,7 +1136,7 @@ app.post('/api/admin/businesses/:id/subscription', verifyToken, checkRole(['SUPE
 
     // Calcular nueva fecha
     let currentEnd = business.subscriptionEnd ? new Date(business.subscriptionEnd) : new Date();
-    
+
     // Lógica inteligente: Si la suscripción ya venció y estamos agregando tiempo, 
     // reiniciamos el conteo desde HOY para no cobrar tiempo muerto.
     if (days > 0 && currentEnd < new Date()) {
@@ -1082,10 +1154,10 @@ app.post('/api/admin/businesses/:id/subscription', verifyToken, checkRole(['SUPE
       }
     });
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Suscripción actualizada. Nueva fecha: ${newEnd.toLocaleDateString()}`,
-      business: updatedBusiness 
+      business: updatedBusiness
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -1109,6 +1181,9 @@ app.get('/api/users', verifyToken, checkRole(['SUPERADMIN']), async (req, res) =
           select: {
             id: true,
             name: true,
+            ruc: true,
+            email: true,
+            plan: true,
             isActive: true,
             subscriptionEnd: true
           }
@@ -1126,18 +1201,135 @@ app.get('/api/users', verifyToken, checkRole(['SUPERADMIN']), async (req, res) =
 app.post('/api/subscriptions/add-time', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
   try {
     const { businessId, months } = req.body;
+    console.log(`⏳ Actualizando suscripción: Empresa ${businessId}, Meses: ${months}`);
 
     if (!businessId || months === undefined || months === null) {
       return res.status(400).json({ message: 'Se requiere el ID de la empresa y la cantidad de meses (puede ser 0 o negativo).' });
     }
 
     const business = await prisma.business.findUnique({
-      where: { id: parseInt(businessId) }
+      where: { id: String(businessId) }
     });
 
     if (!business) {
       return res.status(404).json({ message: 'Empresa no encontrada.' });
     }
+
+    // backend/server.js
+    // ... existing code ...
+    app.post('/api/admin/businesses/:id/subscription', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+      try {
+        const { id } = req.params;
+        // ... existing code ...
+        res.json({
+          success: true,
+          message: `Suscripción actualizada. Nueva fecha: ${newEnd.toLocaleDateString()}`,
+          business: updatedBusiness
+        });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // ============================================
+    // GESTIÓN DE USUARIOS DE LA EMPRESA (TENANT)
+    // ============================================
+
+    // Listar usuarios de la empresa actual
+    app.get('/api/business/users', verifyToken, async (req, res) => {
+      try {
+        const users = await prisma.user.findMany({
+          where: { businessId: req.user.businessId },
+          select: { id: true, email: true, role: true, name: true, isActive: true }
+        });
+        res.json(users);
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Crear usuario para la empresa actual
+    app.post('/api/business/users', verifyToken, async (req, res) => {
+      try {
+    const { email, password, role, name } = req.body;
+
+        if (!email || !password) {
+          return res.status(400).json({ message: 'Email y contraseña requeridos' });
+        }
+
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) return res.status(400).json({ message: 'El usuario ya existe' });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = await prisma.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            role: role || 'USER', // Default role
+        businessId: req.user.businessId,
+        name: name || undefined,
+        isActive: true // Por defecto activo
+          }
+        });
+
+    res.json({ success: true, user: { id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name, isActive: true } });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Eliminar usuario de la empresa
+    app.delete('/api/business/users/:id', verifyToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Verificar que el usuario pertenezca a la misma empresa
+        const userToDelete = await prisma.user.findUnique({ where: { id } });
+
+        if (!userToDelete || userToDelete.businessId !== req.user.businessId) {
+          return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        if (userToDelete.id === req.user.id) {
+          return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta' });
+        }
+
+        await prisma.user.delete({ where: { id } });
+        res.json({ success: true });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
+    // Toggle estado de usuario (Activar/Desactivar)
+    app.put('/api/business/users/:id/status', verifyToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { isActive } = req.body;
+
+        // Verificar que el usuario pertenezca a la misma empresa
+        const userToUpdate = await prisma.user.findUnique({ where: { id } });
+
+        if (!userToUpdate || userToUpdate.businessId !== req.user.businessId) {
+          return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        if (userToUpdate.id === req.user.id) {
+          return res.status(400).json({ message: 'No puedes desactivar tu propia cuenta' });
+        }
+
+        const updatedUser = await prisma.user.update({
+          where: { id },
+          data: { isActive }
+        });
+
+        res.json({ success: true, user: updatedUser });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
+      }
+    });
+
 
     // Calcular la nueva fecha de vencimiento
     const now = new Date();
@@ -1159,16 +1351,16 @@ app.post('/api/subscriptions/add-time', verifyToken, checkRole(['SUPERADMIN']), 
     const isActive = newEndDate > now;
 
     const updatedBusiness = await prisma.business.update({
-      where: { id: parseInt(businessId) },
+      where: { id: String(businessId) },
       data: {
         subscriptionEnd: newEndDate,
-        isActive: isActive 
+        isActive: isActive
       }
     });
 
-    res.json({ 
-      success: true, 
-      message: 'Suscripción actualizada correctamente.', 
+    res.json({
+      success: true,
+      message: 'Suscripción actualizada correctamente.',
       subscriptionEnd: updatedBusiness.subscriptionEnd,
       isActive: updatedBusiness.isActive
     });
@@ -1182,17 +1374,18 @@ app.post('/api/subscriptions/add-time', verifyToken, checkRole(['SUPERADMIN']), 
 // --- RUTAS DE NEGOCIO (PERFIL EMPRESA) ---
 app.get('/api/business', verifyToken, async (req, res) => {
   try {
-    // 1. Caso especial: SUPERADMIN sin empresa asignada
+    // 1. Manejo de compatibilidad: SUPERADMIN sin empresa asignada
     if (req.user.role === 'SUPERADMIN' && !req.user.businessId) {
       return res.json({
-        id: 'admin-corp',
-        name: 'PANEL SUPERADMIN',
+        id: 0,
+        name: 'PANEL DE ADMINISTRACIÓN',
         ruc: '9999999999999',
         email: req.user.email,
-        address: 'Nube - Sistema Central',
+        address: 'Nube - Servidor Central',
         phone: '0999999999',
-        logo: null,
-        themeColor: '#1e293b' // Color oscuro para diferenciar
+        isActive: true,
+        isProduction: false, // Por defecto en modo pruebas para evitar exigir firma
+        themeColor: '#1e293b'
       });
     }
 
@@ -1202,8 +1395,9 @@ app.get('/api/business', verifyToken, async (req, res) => {
     }
 
     // 3. Búsqueda normal en la Base de Datos
+    console.log(`🔍 Buscando empresa ID: ${req.user.businessId}`);
     const business = await prisma.business.findUnique({
-      where: { id: req.user.businessId }
+      where: { id: String(req.user.businessId) }
     });
 
     if (!business) {
@@ -1213,21 +1407,6 @@ app.get('/api/business', verifyToken, async (req, res) => {
     res.json(business);
   } catch (e) {
     console.error('Error en /api/business:', e);
-=======
-// --- RUTAS DE NEGOCIO (PERFIL EMPRESA) ---
-app.get('/api/business', verifyToken, async (req, res) => {
-  try {
-    let filtro = {}; // Por defecto: Traer TODO (Para Superadmin)
-    if (req.user.role !== 'SUPERADMIN') {
-      filtro = { businessId: req.user.businessId };
-    }
-    // SAAS: Buscamos SOLO la empresa del usuario logueado
-    const business = await prisma.business.findUnique({
-      where: filtro
-    });
-    res.json(business);
-  } catch (e) {
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
     res.status(500).json({ error: e.message });
   }
 });
@@ -1236,7 +1415,7 @@ app.post('/api/business', verifyToken, async (req, res) => {
   try {
     // SAAS: Actualizamos SOLO la empresa del usuario logueado
     const result = await prisma.business.update({
-      where: { id: req.user.businessId },
+      where: { id: String(req.user.businessId) },
       data: req.body
     });
     res.json(result);
@@ -1358,22 +1537,24 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 app.get('/api/documents', verifyToken, async (req, res) => {
   try {
     let filtro = {}; // Por defecto: Traer TODO (Para Superadmin)
-<<<<<<< HEAD
-    
+
     // Lógica de roles
     if (req.user.role === 'CLIENT') {
       // Si es CLIENTE, solo ve SUS documentos de ESA empresa
       filtro = { businessId: req.user.businessId, clientId: req.user.id }; // Asumiendo que Document tiene clientId
+    } else if (req.user.role === 'USER') {
+      // VENDEDOR: Solo ve sus propios documentos
+      filtro = { businessId: req.user.businessId, userId: req.user.id };
     } else if (req.user.role !== 'SUPERADMIN') {
       // Si es EMPRESA, ve todo lo de su empresa
-=======
-    if (req.user.role !== 'SUPERADMIN') {
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
       filtro = { businessId: req.user.businessId };
     }
     const docs = await prisma.document.findMany({
       where: filtro, //Usamos la variable dinámica
-      include: { items: true },
+      include: { 
+        items: true,
+        user: { select: { name: true, email: true } } // Incluir datos del vendedor
+      },
       orderBy: { createdAt: 'desc' }
     });
     res.json(docs);
@@ -1429,6 +1610,7 @@ app.post('/api/documents', verifyToken, async (req, res) => {
         ...docData,
         number,
         businessId, // VINCULAMOS DOCUMENTO A LA EMPRESA
+        userId: req.user.id, // VINCULAMOS AL USUARIO CREADOR
         issueDate: new Date(docData.issueDate),
         dueDate: docData.dueDate ? new Date(docData.dueDate) : undefined,
         relatedDocumentDate: docData.relatedDocumentDate ? new Date(docData.relatedDocumentDate) : null,
@@ -1490,8 +1672,7 @@ app.post('/api/documents', verifyToken, async (req, res) => {
         for (const item of items) {
           if (item.type === 'FISICO') {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
-<<<<<<< HEAD
-            
+
             if (product && product.businessId === businessId) {
               const previousStock = product.stock;
               const newStock = previousStock + item.quantity; // SUMAR stock
@@ -1510,24 +1691,6 @@ app.post('/api/documents', verifyToken, async (req, res) => {
                 }
               });
             }
-=======
-            const previousStock = product.stock;
-            const newStock = previousStock + item.quantity; // SUMAR stock
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: newStock }
-            });
-            await tx.inventoryMovement.create({
-              data: {
-                productId: item.productId,
-                documentId: doc.id,
-                type: 'DEVOLUCION',
-                quantity: item.quantity, // Positivo porque entra
-                previousStock,
-                newStock
-              }
-            });
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           }
         }
       }
@@ -1537,8 +1700,7 @@ app.post('/api/documents', verifyToken, async (req, res) => {
         for (const item of items) {
           if (item.type === 'FISICO') {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
-<<<<<<< HEAD
-            
+
             if (product && product.businessId === businessId) {
               const previousStock = product.stock;
               const newStock = previousStock + item.quantity; // SUMAR stock
@@ -1557,24 +1719,6 @@ app.post('/api/documents', verifyToken, async (req, res) => {
                 }
               });
             }
-=======
-            const previousStock = product.stock;
-            const newStock = previousStock + item.quantity; // SUMAR stock
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { stock: newStock }
-            });
-            await tx.inventoryMovement.create({
-              data: {
-                productId: item.productId,
-                documentId: doc.id,
-                type: 'COMPRA',
-                quantity: item.quantity, // Positivo porque entra
-                previousStock,
-                newStock
-              }
-            });
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
           }
         }
       }
@@ -1589,7 +1733,6 @@ app.post('/api/documents', verifyToken, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 // ============================================
 // ENDPOINT: Asistente de IA (Gemini)
 // ============================================
@@ -1601,8 +1744,8 @@ app.post('/api/ai/chat', verifyToken, async (req, res) => {
     if (!apiKey) {
       // Fallback para modo desarrollo si no hay key
       console.warn('⚠️ GEMINI_API_KEY no configurada');
-      return res.json({ 
-        reply: "El servicio de IA no está configurado correctamente en el servidor. Por favor configura la variable GEMINI_API_KEY." 
+      return res.json({
+        reply: "El servicio de IA no está configurado correctamente en el servidor. Por favor configura la variable GEMINI_API_KEY."
       });
     }
 
@@ -1619,7 +1762,7 @@ app.post('/api/ai/chat', verifyToken, async (req, res) => {
     Responde de forma breve, amigable y profesional. Si no sabes algo, sugiere consultar a un contador.`;
 
     console.log('🤖 Enviando consulta a Gemini 1.5 Pro...');
-    
+
     // Inicializar la librería
     const genAI = new GoogleGenerativeAI(apiKey);
     // Usamos 'gemini-1.5-pro' como alternativa estable
@@ -1666,7 +1809,7 @@ app.post('/api/ai/insights', verifyToken, async (req, res) => {
     - **Revisión Fiscal:** Has emitido Z facturas. Asegúrate de tener todo listo para tu próxima declaración del IVA.`;
 
     console.log('📊 Generando insights con Gemini 1.5 Pro...');
-    
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
@@ -1682,8 +1825,6 @@ app.post('/api/ai/insights', verifyToken, async (req, res) => {
   }
 });
 
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -1717,12 +1858,9 @@ app.listen(PORT, () => {
   console.log(`   POST http://localhost:${PORT}/api/sri/sign-xml`);
   console.log(`   POST http://localhost:${PORT}/api/sri/recepcion`);
   console.log(`   POST http://localhost:${PORT}/api/sri/autorizacion`);
-<<<<<<< HEAD
   console.log(`   POST http://localhost:${PORT}/api/login`);
   console.log(`   POST http://localhost:${PORT}/api/auth/client/login`);
   console.log(`   POST http://localhost:${PORT}/api/forgot-password`);
-=======
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-email`);
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-sms`);
   console.log(`   POST http://localhost:${PORT}/api/notifications/send-whatsapp`);
@@ -1747,7 +1885,3 @@ process.on('SIGINT', () => {
   console.log('👋 Cerrando servidor...');
   process.exit(0);
 });
-<<<<<<< HEAD
-=======
-
->>>>>>> 901d58ce423c2ddaab87b01448f2d25b65b4ef5a
