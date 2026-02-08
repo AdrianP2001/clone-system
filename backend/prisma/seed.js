@@ -41,13 +41,15 @@ async function main() {
     update: {
       password: superAdminPass,
       role: 'SUPERADMIN',
-      businessId: saasCompany.id
+      businessId: saasCompany.id,
+      isActive: true
     },
     create: {
       email: 'superadmin@admin.com',
       password: superAdminPass,
       role: 'SUPERADMIN',
-      businessId: saasCompany.id
+      businessId: saasCompany.id,
+      isActive: true
     },
   });
   console.log(`🦸 Super Admin: ${superAdmin.email} (Pass: superadmin123)`);
@@ -99,13 +101,15 @@ async function main() {
     update: {
       password: empresaPass,
       role: 'ADMIN',
-      businessId: business.id
+      businessId: business.id,
+      isActive: true
     },
     create: {
       email: 'empresa@gmail.com',
       password: empresaPass,
       role: 'ADMIN',
-      businessId: business.id
+      businessId: business.id,
+      isActive: true
     },
   });
   console.log(`👤 Usuario Empresa: ${empresaUser.email} (Pass: Leon2017)`);
@@ -118,13 +122,15 @@ async function main() {
     update: {
       password: vendedorPass,
       role: 'USER', // Rol de vendedor
-      businessId: business.id
+      businessId: business.id,
+      isActive: true
     },
     create: {
       email: 'vendedor@gmail.com',
       password: vendedorPass,
       role: 'USER',
-      businessId: business.id
+      businessId: business.id,
+      isActive: true
     },
   });
   console.log(`👤 Usuario Vendedor: ${vendedorUser.email} (Pass: 1423)`);
