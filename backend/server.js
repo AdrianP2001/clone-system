@@ -1856,16 +1856,17 @@ app.post('/api/ai/insights', verifyToken, async (req, res) => {
 // ============================================
 // SERVIR FRONTEND EN PRODUCCIÓN
 // ============================================
-if (process.env.NODE_ENV === 'production') {
+
+// if (process.env.NODE_ENV === 'production') {
   // Servir archivos estáticos desde la carpeta dist del frontend (un nivel arriba)
-  app.use(express.static(path.join(__dirname, '../dist')));
+//  app.use(express.static(path.join(__dirname, '../dist')));
 
   // Cualquier ruta que no sea API, enviar al index.html (SPA)
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
-  });
-}
+  //app.get('*', (req, res, next) => {
+  //  if (req.path.startsWith('/api')) return next();
+  //  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  //});
+//}
 
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {
