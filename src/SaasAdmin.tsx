@@ -536,8 +536,14 @@ const SaasAdmin: React.FC<SaasAdminProps> = ({ onNotify }) => {
                     </div>
                     <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contraseña Admin</label>
-                        <input type="password" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                            value={businessFormData.password} onChange={e => setBusinessFormData({...businessFormData, password: e.target.value})} placeholder="Para el usuario admin" />
+                        <div className="relative">
+                            <input type={showPassword ? "text" : "password"} required className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all pr-12"
+                                value={businessFormData.password} onChange={e => setBusinessFormData({...businessFormData, password: e.target.value})} placeholder="Para el usuario admin" />
+                            <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                onClick={() => setShowPassword(!showPassword)}>
+                                {showPassword ? '🙈' : '👁️'}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teléfono</label>
@@ -548,9 +554,9 @@ const SaasAdmin: React.FC<SaasAdminProps> = ({ onNotify }) => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Plan Inicial</label>
                         <select className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             value={businessFormData.plan} onChange={e => setBusinessFormData({...businessFormData, plan: e.target.value})}>
-                            <option value="BASIC">Básico</option>
-                            <option value="PRO">Profesional</option>
-                            <option value="ENTERPRISE">Empresarial</option>
+                            <option value="BASIC">Plan Básico</option>
+                            <option value="PRO">Plan Profesional</option>
+                            <option value="ENTERPRISE">Plan Empresarial</option>
                         </select>
                     </div>
                     <div className="md:col-span-2">
