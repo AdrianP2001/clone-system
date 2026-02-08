@@ -124,6 +124,14 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  // 🔒 FORZAR CAMBIO DE CONTRASEÑA
+  useEffect(() => {
+    if (currentUser?.requirePasswordChange && activeTab !== 'config') {
+      setActiveTab('config');
+      showNotify('Por seguridad, debe actualizar su contraseña para continuar.', 'warning');
+    }
+  }, [currentUser, activeTab]);
+
   // Efecto para aplicar el modo oscuro basado en la configuración de la empresa
   useEffect(() => {
     const features = (businessInfo as any).features;
@@ -161,7 +169,6 @@ const App: React.FC = () => {
       // CASO B: MODO REAL (Cargar desde BD)
 
       try {
-        console.log("🟢 MODO PRODUCCIÓN: Conectando a Base de Datos...");
         
         // Carga resiliente: Si falla uno, no detiene a los demás
         const loadBusiness = client.get<BusinessInfo>('/business').catch(e => { console.error("Error loading business", e); return null; });
@@ -176,8 +183,6 @@ const App: React.FC = () => {
         setProducts(productos || []);
         setDocuments(docs || []); 
         
-        console.log("✅ Datos cargados desde la Base de Datos");
-
         // Restaurar firma si existe en features
         const features = (empresa as any).features || {};
         if (features.signatureP12) {
@@ -440,6 +445,10 @@ const App: React.FC = () => {
         if (data.success) {
             showNotify('Contraseña actualizada correctamente');
             setPasswordData({ current: '', new: '', confirm: '' });
+            // Actualizar estado local para quitar el bloqueo
+            const updatedUser = { ...currentUser, requirePasswordChange: false };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
         } else {
             showNotify(data.message, 'error');
         }
@@ -871,27 +880,6 @@ const App: React.FC = () => {
             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors"
           >
             {((businessInfo as any).features?.isDarkMode ?? window.matchMedia('(prefers-color-scheme: dark)').matches) ? '☀️ Claro' : '🌙 Oscuro'}
-          </button>
-          
-          {/* Botón Toggle Modo Demo/Producción */}
-          <button
-            onClick={() => {
-              const newState = !isDemoMode;
-              setIsDemoMode(newState);
-              showNotify(newState ? "Modo DEMO activado" : "Modo PRODUCCIÓN activado", "info");
-            }}
-            className={`
-              w-10 h-5 rounded-full p-0.5 transition-colors duration-300 focus:outline-none
-              ${isDemoMode ? 'bg-orange-400' : 'bg-emerald-500'}
-            `}
-            title={isDemoMode ? "Cambiar a Producción" : "Cambiar a Demo"}
-          >
-            <div 
-              className={`
-                w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300
-                ${isDemoMode ? 'translate-x-0' : 'translate-x-5'}
-              `} 
-            />
           </button>
         </div>
       )}

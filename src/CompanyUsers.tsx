@@ -22,6 +22,8 @@ const CompanyUsers: React.FC<CompanyUsersProps> = ({ onNotify }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [tempPassword, setTempPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -139,6 +141,36 @@ const CompanyUsers: React.FC<CompanyUsersProps> = ({ onNotify }) => {
     }
   };
 
+  const handleResetPassword = () => {
+    if (!selectedUser) return;
+    setTempPassword('');
+    setShowResetModal(true);
+  };
+
+  const confirmResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser || !tempPassword) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/business/users/${selectedUser.id}/reset-password`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ temporaryPassword: tempPassword })
+      });
+      const data = await response.json();
+      if (data.success) {
+        onNotify(data.message, 'success');
+        setShowResetModal(false);
+      } else {
+        onNotify(data.message || 'Error al resetear', 'error');
+      }
+    } catch (error) { onNotify('Error de conexión', 'error'); }
+  };
+
   const filteredUsers = users.filter(u => 
     (u.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -252,6 +284,13 @@ const CompanyUsers: React.FC<CompanyUsersProps> = ({ onNotify }) => {
                   }`}
                 >
                   {selectedUser.isActive ? '⏸️ Desactivar Cuenta' : '▶️ Activar Cuenta'}
+                </button>
+
+                <button
+                  onClick={handleResetPassword}
+                  className="w-full py-4 bg-blue-500 hover:bg-blue-400 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2"
+                >
+                  🔑 Resetear Contraseña
                 </button>
 
                 <button
@@ -394,6 +433,51 @@ const CompanyUsers: React.FC<CompanyUsersProps> = ({ onNotify }) => {
                 Sí, Eliminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL RESETEAR CONTRASEÑA */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-slate-800">Resetear Contraseña</h3>
+                <button onClick={() => setShowResetModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            
+            <form onSubmit={confirmResetPassword} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nueva Contraseña Temporal</label>
+                <input
+                  type="text"
+                  className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  placeholder="Ej: Cédula del usuario"
+                  value={tempPassword}
+                  onChange={e => setTempPassword(e.target.value)}
+                  autoFocus
+                />
+                <p className="text-[10px] text-slate-400 mt-2 ml-1">
+                  El usuario deberá cambiar esta contraseña en su próximo inicio de sesión.
+                </p>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-colors text-xs uppercase tracking-widest"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-all text-xs uppercase tracking-widest"
+                >
+                  Confirmar Reset
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

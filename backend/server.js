@@ -1094,6 +1094,23 @@ app.delete('/api/admin/users/:id', verifyToken, checkRole(['SUPERADMIN']), async
   }
 });
 
+// Reset Password (Superadmin)
+app.post('/api/admin/users/:id/reset-password', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { temporaryPassword } = req.body;
+
+    if (!temporaryPassword) return res.status(400).json({ message: 'Se requiere una contraseña temporal.' });
+
+    // Guardar como texto plano para activar requirePasswordChange
+    await prisma.user.update({ where: { id }, data: { password: temporaryPassword } });
+
+    res.json({ success: true, message: 'Contraseña restablecida.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // 8. Eliminar Empresa (Superadmin)
 app.delete('/api/admin/businesses/:id', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
   try {
@@ -1322,6 +1339,28 @@ app.delete('/api/business/users/:id', verifyToken, async (req, res) => {
 
     await prisma.user.delete({ where: { id } });
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Reset Password (Company Admin)
+app.post('/api/business/users/:id/reset-password', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { temporaryPassword } = req.body;
+
+    if (!temporaryPassword) return res.status(400).json({ message: 'Se requiere una contraseña temporal.' });
+
+    const userToUpdate = await prisma.user.findUnique({ where: { id } });
+    if (!userToUpdate || userToUpdate.businessId !== req.user.businessId) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Guardar como texto plano para activar requirePasswordChange en el próximo login
+    await prisma.user.update({ where: { id }, data: { password: temporaryPassword } });
+
+    res.json({ success: true, message: 'Contraseña restablecida. El usuario deberá cambiarla al ingresar.' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -63,7 +63,7 @@ const Layout: React.FC<LayoutProps> = ({
     
     // Configuración
     { id: 'company-users', label: 'Equipo de Trabajo', icon: '👥', roles: ['ADMIN'] },
-    { id: 'config', label: 'Perfil de Empresa', icon: '🏢', roles: ['ADMIN', 'SUPERADMIN'] },
+    { id: 'config', label: 'Perfil de Empresa', icon: '🏢', roles: ['ADMIN', 'SUPERADMIN', 'USER'] },
     { id: 'ai-assistant', label: 'Asistente IA', icon: '🤖', roles: ['ADMIN', 'SUPERADMIN'] },
     
     { id: 'logout_btn', label: 'Cerrar Sesión', icon: '🚪', roles: ['ADMIN', 'USER', 'SUPERADMIN', 'CLIENT'] },
@@ -99,7 +99,7 @@ const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative">
 
       {/* OVERLAY PARA MÓVIL */}
       {isSidebarOpen && (
@@ -162,7 +162,7 @@ const Layout: React.FC<LayoutProps> = ({
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col overflow-hidden w-full">
-        <header className="h-16 bg-white/70 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 z-10 print:hidden">
+        <header className="h-16 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 z-10 print:hidden">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -179,29 +179,29 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:bg-slate-100'}`}
+                className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               >
                 <svg className="w-5 h-5 lg:w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                 {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 border-2 border-white rounded-full text-[9px] text-white flex items-center justify-center font-bold">{unreadCount}</span>}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-72 lg:w-80 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200 origin-top-right">
-                  <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                    <span className="text-xs font-black uppercase tracking-tighter text-slate-800">Notificaciones</span>
-                    <button onClick={() => onMarkRead()} className="text-[10px] font-bold text-blue-600">Leído</button>
+                <div className="absolute right-0 mt-3 w-72 lg:w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200 origin-top-right">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <span className="text-xs font-black uppercase tracking-tighter text-slate-800 dark:text-white">Notificaciones</span>
+                    <button onClick={() => onMarkRead()} className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Leído</button>
                   </div>
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-700">
                     {notifications.length === 0 ? (
                       <div className="p-8 text-center text-slate-300 italic text-xs">Sin novedades</div>
                     ) : (
                       notifications.map(n => (
-                        <div key={n.id} className={`p-4 flex gap-3 group relative ${!n.read ? 'bg-blue-50/20' : ''}`}>
+                        <div key={n.id} className={`p-4 flex gap-3 group relative ${!n.read ? 'bg-blue-50/20 dark:bg-blue-900/20' : ''}`}>
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${n.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
                             <span className="text-sm">●</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-xs ${n.read ? 'text-slate-500' : 'text-slate-900 font-bold'}`}>{n.text}</p>
+                            <p className={`text-xs ${n.read ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white font-bold'}`}>{n.text}</p>
                           </div>
                         </div>
                       ))
@@ -213,7 +213,7 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50/50">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50/50 dark:bg-slate-900/50">
           {children}
         </div>
       </main>

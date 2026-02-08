@@ -63,7 +63,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 localStorage.setItem('user', JSON.stringify(data.user));
             }
 
-            console.log('✅ Login exitoso en Frontend:', data.user);
             onLoginSuccess();
 
         } catch (err: any) {
