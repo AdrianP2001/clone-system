@@ -13,6 +13,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const bcrypt = require('bcryptjs');
+const path = require('path');
 const {
   validateXmlStructure,
   retryWithBackoff,
@@ -1851,6 +1852,20 @@ app.post('/api/ai/insights', verifyToken, async (req, res) => {
     res.json({ insights: `No se pudieron generar recomendaciones: ${error.message}` });
   }
 });
+
+// ============================================
+// SERVIR FRONTEND EN PRODUCCIÓN
+// ============================================
+if (process.env.NODE_ENV === 'production') {
+  // Servir archivos estáticos desde la carpeta dist del frontend (un nivel arriba)
+  app.use(express.static(path.join(__dirname, '../dist')));
+
+  // Cualquier ruta que no sea API, enviar al index.html (SPA)
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+}
 
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {
