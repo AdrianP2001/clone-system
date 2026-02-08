@@ -70,6 +70,8 @@ model User {
   email      String    @unique
   password   String
   role       String    @default("VENDEDOR") // SUPERADMIN, ADMIN_NEGOCIO, VENDEDOR, CONTADOR
+  name       String?
+  isActive   Boolean   @default(true)
   
   // SAAS: El usuario pertenece a una empresa
   // (Es opcional '?' porque el SUPERADMIN podría no tener empresa)
@@ -89,8 +91,7 @@ model User {
 
 model Client {
   id        String   @id @default(uuid())
-  identification String   
-  password  String?  // Contraseña para el portal (opcional, si es null usa identification)
+  password  String?  // Contraseña para el portal (opcional, si es null usa ruc)
   ruc       String   
   name      String
   email     String?
@@ -106,7 +107,6 @@ model Client {
   // IMPORTANTE: El RUC ya no es @unique global.
   // Es único SOLO dentro de la misma empresa.
 
-  @@unique([identification, businessId]) 
   @@unique([ruc, businessId]) 
 
 }

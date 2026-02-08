@@ -162,17 +162,21 @@ const App: React.FC = () => {
 
       try {
         console.log("🟢 MODO PRODUCCIÓN: Conectando a Base de Datos...");
-        const [empresa, clientes, productos, docs] = await Promise.all([
-          client.get<BusinessInfo>('/business'),
-          client.get<Client[]>('/clients'),
-          client.get<Product[]>('/products'),
-          client.get<any[]>('/documents')
-        ]);
+        
+        // Carga resiliente: Si falla uno, no detiene a los demás
+        const loadBusiness = client.get<BusinessInfo>('/business').catch(e => { console.error("Error loading business", e); return null; });
+        const loadClients = client.get<Client[]>('/clients').catch(e => { console.error("Error loading clients", e); return []; });
+        const loadProducts = client.get<Product[]>('/products').catch(e => { console.error("Error loading products", e); return []; });
+        const loadDocs = client.get<any[]>('/documents').catch(e => { console.error("Error loading documents", e); return []; });
+
+        const [empresa, clientes, productos, docs] = await Promise.all([loadBusiness, loadClients, loadProducts, loadDocs]);
 
         if (empresa) setBusinessInfo(empresa);
-        setClients(clientes);
-        setProducts(productos);
-        setDocuments(docs); console.log("✅ Datos cargados desde la Base de Datos");
+        setClients(clientes || []);
+        setProducts(productos || []);
+        setDocuments(docs || []); 
+        
+        console.log("✅ Datos cargados desde la Base de Datos");
 
         // Restaurar firma si existe en features
         const features = (empresa as any).features || {};
@@ -541,14 +545,14 @@ const App: React.FC = () => {
       case 'admin-users': return <SaasAdmin onNotify={showNotify} />; // Redirección por compatibilidad
 
       case 'company-users': 
-        // SEGURIDAD: Solo Admins pueden ver esto
-        if (currentUser?.role === 'USER') {
-          showNotify('No tienes permisos para acceder a este módulo', 'error');
+        // SEGURIDAD: Solo Admins de Empresa (Rol ADMIN). Superadmins usan SaasAdmin.
+        if (currentUser?.role !== 'ADMIN') {
+          showNotify('Acceso restringido a Administradores de Empresa', 'error');
           return <Dashboard documents={documents} products={products} setActiveTab={setActiveTab} />;
         }
         return <CompanyUsers onNotify={showNotify} />;
       
-      case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} isDemoMode={isDemoMode}/>;
+      case 'clients': return <ClientManager clients={clients} setClients={setClients} onNotify={showNotify} isDemoMode={isDemoMode} currentUser={currentUser} />;
       case 'products': return <ProductManager products={products} setProducts={setProducts} onNotify={showNotify} isDemoMode={isDemoMode} />;
       case 'integrations': return <Integrations products={products} clients={clients} businessInfo={businessInfo} onOrderAuthorized={handleDocumentAuthorized} onNotify={showNotify} onUpdateProducts={setProducts} />;
       case 'config':
@@ -623,7 +627,7 @@ const App: React.FC = () => {
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RUC</label>
                       <input
                         type="text"
-                        value={businessInfo.ruc}
+                        value={businessInfo.ruc || ''}
                         placeholder="1234567890001"
                         maxLength={13}
                         className="w-full p-4 bg-slate-50 rounded-2xl font-black text-sm outline-none border-2 border-transparent focus:border-blue-500"
@@ -636,7 +640,7 @@ const App: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        value={businessInfo.name}
+                        value={businessInfo.name || ''}
                         placeholder={businessInfo.taxpayerType === 'PERSONA_NATURAL' ? 'Ej: Juan Pérez Gómez' : 'Ej: CORPORACION EJEMPLO S.A.'}
                         className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-blue-500"
                         onChange={e => setBusinessInfo({ ...businessInfo, name: e.target.value })}
@@ -646,7 +650,7 @@ const App: React.FC = () => {
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre Comercial</label>
                       <input
                         type="text"
-                        value={businessInfo.tradename}
+                        value={businessInfo.tradename || ''}
                         placeholder={businessInfo.taxpayerType === 'PERSONA_NATURAL' ? 'Ej: Tienda Juan' : 'Ej: ECUAFACT ENTERPRISE'}
                         className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-blue-500"
                         onChange={e => setBusinessInfo({ ...businessInfo, tradename: e.target.value })}
@@ -654,22 +658,22 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dirección Matriz</label>
-                      <input type="text" value={businessInfo.address} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-blue-500" onChange={e => setBusinessInfo({ ...businessInfo, address: e.target.value })} />
+                      <input type="text" value={businessInfo.address || ''} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-blue-500" onChange={e => setBusinessInfo({ ...businessInfo, address: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dirección Sucursal</label>
-                      <input type="text" value={businessInfo.branchAddress} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-blue-500" onChange={e => setBusinessInfo({ ...businessInfo, branchAddress: e.target.value })} />
+                      <input type="text" value={businessInfo.branchAddress || ''} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm outline-none border-2 border-transparent focus:border-blue-500" onChange={e => setBusinessInfo({ ...businessInfo, branchAddress: e.target.value })} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estab.</label>
-                      <input type="text" placeholder="001" value={businessInfo.establishmentCode} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center text-sm" onChange={e => setBusinessInfo({ ...businessInfo, establishmentCode: e.target.value })} />
+                      <input type="text" placeholder="001" value={businessInfo.establishmentCode || ''} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center text-sm" onChange={e => setBusinessInfo({ ...businessInfo, establishmentCode: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pto. Emisión</label>
-                      <input type="text" placeholder="001" value={businessInfo.emissionPointCode} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center text-sm" onChange={e => setBusinessInfo({ ...businessInfo, emissionPointCode: e.target.value })} />
+                      <input type="text" placeholder="001" value={businessInfo.emissionPointCode || ''} className="w-full p-4 bg-slate-50 rounded-2xl font-black text-center text-sm" onChange={e => setBusinessInfo({ ...businessInfo, emissionPointCode: e.target.value })} />
                     </div>
                     <div className="md:col-span-2 space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Obligado Contabilidad</label>
@@ -700,11 +704,11 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Agente de Retención (Res.)</label>
-                      <input type="text" placeholder="Ej: NAC-DNCRASC20-00000001" value={businessInfo.withholdingAgentCode} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm" onChange={e => setBusinessInfo({ ...businessInfo, withholdingAgentCode: e.target.value })} />
+                      <input type="text" placeholder="Ej: NAC-DNCRASC20-00000001" value={businessInfo.withholdingAgentCode || ''} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm" onChange={e => setBusinessInfo({ ...businessInfo, withholdingAgentCode: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contribuyente Especial (Nro)</label>
-                      <input type="text" placeholder="Ej: 000" value={businessInfo.specialTaxpayerCode} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm" onChange={e => setBusinessInfo({ ...businessInfo, specialTaxpayerCode: e.target.value })} />
+                      <input type="text" placeholder="Ej: 000" value={businessInfo.specialTaxpayerCode || ''} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-sm" onChange={e => setBusinessInfo({ ...businessInfo, specialTaxpayerCode: e.target.value })} />
                     </div>
                   </div>
                 </section>

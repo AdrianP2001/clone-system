@@ -62,6 +62,7 @@ app.post('/api/reset-password', authController.resetPassword);
 app.post('/api/auth/client/login', authController.clientLogin);
 app.post('/api/auth/client/forgot-password', authController.clientForgotPassword);
 app.post('/api/auth/client/change-password', authController.changeClientPassword);
+app.post('/api/client/change-password', authController.changeClientPassword);
 
 // Rutas de Perfil de Usuario (Self-Service)
 app.put('/api/user/profile', verifyToken, authController.updateUserProfile);
@@ -1215,122 +1216,6 @@ app.post('/api/subscriptions/add-time', verifyToken, checkRole(['SUPERADMIN']), 
       return res.status(404).json({ message: 'Empresa no encontrada.' });
     }
 
-    // backend/server.js
-    // ... existing code ...
-    app.post('/api/admin/businesses/:id/subscription', verifyToken, checkRole(['SUPERADMIN']), async (req, res) => {
-      try {
-        const { id } = req.params;
-        // ... existing code ...
-        res.json({
-          success: true,
-          message: `Suscripción actualizada. Nueva fecha: ${newEnd.toLocaleDateString()}`,
-          business: updatedBusiness
-        });
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
-    });
-
-    // ============================================
-    // GESTIÓN DE USUARIOS DE LA EMPRESA (TENANT)
-    // ============================================
-
-    // Listar usuarios de la empresa actual
-    app.get('/api/business/users', verifyToken, async (req, res) => {
-      try {
-        const users = await prisma.user.findMany({
-          where: { businessId: req.user.businessId },
-          select: { id: true, email: true, role: true, name: true, isActive: true }
-        });
-        res.json(users);
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
-    });
-
-    // Crear usuario para la empresa actual
-    app.post('/api/business/users', verifyToken, async (req, res) => {
-      try {
-    const { email, password, role, name } = req.body;
-
-        if (!email || !password) {
-          return res.status(400).json({ message: 'Email y contraseña requeridos' });
-        }
-
-        const existing = await prisma.user.findUnique({ where: { email } });
-        if (existing) return res.status(400).json({ message: 'El usuario ya existe' });
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newUser = await prisma.user.create({
-          data: {
-            email,
-            password: hashedPassword,
-            role: role || 'USER', // Default role
-        businessId: req.user.businessId,
-        name: name || undefined,
-        isActive: true // Por defecto activo
-          }
-        });
-
-    res.json({ success: true, user: { id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name, isActive: true } });
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
-    });
-
-    // Eliminar usuario de la empresa
-    app.delete('/api/business/users/:id', verifyToken, async (req, res) => {
-      try {
-        const { id } = req.params;
-
-        // Verificar que el usuario pertenezca a la misma empresa
-        const userToDelete = await prisma.user.findUnique({ where: { id } });
-
-        if (!userToDelete || userToDelete.businessId !== req.user.businessId) {
-          return res.status(404).json({ message: 'Usuario no encontrado' });
-        }
-
-        if (userToDelete.id === req.user.id) {
-          return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta' });
-        }
-
-        await prisma.user.delete({ where: { id } });
-        res.json({ success: true });
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
-    });
-
-    // Toggle estado de usuario (Activar/Desactivar)
-    app.put('/api/business/users/:id/status', verifyToken, async (req, res) => {
-      try {
-        const { id } = req.params;
-        const { isActive } = req.body;
-
-        // Verificar que el usuario pertenezca a la misma empresa
-        const userToUpdate = await prisma.user.findUnique({ where: { id } });
-
-        if (!userToUpdate || userToUpdate.businessId !== req.user.businessId) {
-          return res.status(404).json({ message: 'Usuario no encontrado' });
-        }
-
-        if (userToUpdate.id === req.user.id) {
-          return res.status(400).json({ message: 'No puedes desactivar tu propia cuenta' });
-        }
-
-        const updatedUser = await prisma.user.update({
-          where: { id },
-          data: { isActive }
-        });
-
-        res.json({ success: true, user: updatedUser });
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
-    });
-
-
     // Calcular la nueva fecha de vencimiento
     const now = new Date();
     let currentEnd = business.subscriptionEnd ? new Date(business.subscriptionEnd) : now;
@@ -1368,6 +1253,105 @@ app.post('/api/subscriptions/add-time', verifyToken, checkRole(['SUPERADMIN']), 
   } catch (error) {
     console.error('Error al agregar suscripción:', error);
     res.status(500).json({ message: 'Error interno al actualizar la suscripción' });
+  }
+});
+
+// ============================================
+// GESTIÓN DE USUARIOS DE LA EMPRESA (TENANT)
+// ============================================
+
+// Listar usuarios de la empresa actual
+app.get('/api/business/users', verifyToken, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { businessId: req.user.businessId },
+      select: { id: true, email: true, role: true, name: true, isActive: true }
+    });
+    res.json(users);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Crear usuario para la empresa actual
+app.post('/api/business/users', verifyToken, async (req, res) => {
+  try {
+    const { email, password, role, name } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email y contraseña requeridos' });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return res.status(400).json({ message: 'El usuario ya existe' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: role || 'USER', // Default role
+        businessId: req.user.businessId,
+        name: name || undefined,
+        isActive: true // Por defecto activo
+      }
+    });
+
+    res.json({ success: true, user: { id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name, isActive: true } });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Eliminar usuario de la empresa
+app.delete('/api/business/users/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar que el usuario pertenezca a la misma empresa
+    const userToDelete = await prisma.user.findUnique({ where: { id } });
+
+    if (!userToDelete || userToDelete.businessId !== req.user.businessId) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    if (userToDelete.id === req.user.id) {
+      return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta' });
+    }
+
+    await prisma.user.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Toggle estado de usuario (Activar/Desactivar)
+app.put('/api/business/users/:id/status', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    // Verificar que el usuario pertenezca a la misma empresa
+    const userToUpdate = await prisma.user.findUnique({ where: { id } });
+
+    if (!userToUpdate || userToUpdate.businessId !== req.user.businessId) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    if (userToUpdate.id === req.user.id) {
+      return res.status(400).json({ message: 'No puedes desactivar tu propia cuenta' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { isActive }
+    });
+
+    res.json({ success: true, user: updatedUser });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -1436,6 +1420,7 @@ app.get('/api/clients', verifyToken, async (req, res) => {
     });
     res.json(clients);
   } catch (e) {
+    console.error("Error en GET /api/clients:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -1447,6 +1432,7 @@ app.post('/api/clients', verifyToken, async (req, res) => {
     const client = await prisma.client.create({ data: clientData });
     res.json(client);
   } catch (e) {
+    console.error("Error creating client:", e);
     res.status(400).json({ error: e.message });
   }
 });
@@ -1461,6 +1447,7 @@ app.put('/api/clients/:id', verifyToken, async (req, res) => {
     });
     res.json(client);
   } catch (e) {
+    console.error("Error updating client:", e);
     res.status(400).json({ error: 'No se pudo actualizar o no tienes permiso' });
   }
 });
@@ -1541,7 +1528,7 @@ app.get('/api/documents', verifyToken, async (req, res) => {
     // Lógica de roles
     if (req.user.role === 'CLIENT') {
       // Si es CLIENTE, solo ve SUS documentos de ESA empresa
-      filtro = { businessId: req.user.businessId, clientId: req.user.id }; // Asumiendo que Document tiene clientId
+      filtro = { businessId: req.user.businessId, entityRuc: req.user.ruc }; 
     } else if (req.user.role === 'USER') {
       // VENDEDOR: Solo ve sus propios documentos
       filtro = { businessId: req.user.businessId, userId: req.user.id };
@@ -1553,12 +1540,13 @@ app.get('/api/documents', verifyToken, async (req, res) => {
       where: filtro, //Usamos la variable dinámica
       include: { 
         items: true,
-        user: { select: { name: true, email: true } } // Incluir datos del vendedor
+        user: { select: { name: true, email: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
     res.json(docs);
   } catch (e) {
+    console.error("Error en GET /api/documents:", e);
     res.status(500).json({ error: e.message });
   }
 });

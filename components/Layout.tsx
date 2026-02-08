@@ -38,34 +38,35 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'admin-users', label: 'Panel SaaS', icon: '🏢', roles: ['SUPERADMIN'] },
 
     // Menú General
-    { id: 'dashboard', label: 'Panel Principal', icon: '📊', roles: ['ADMIN', 'EMPLOYEE', 'SUPERADMIN'] },
+    { id: 'dashboard', label: 'Panel Principal', icon: '📊', roles: ['ADMIN', 'USER', 'SUPERADMIN'] },
 
     // Menú Operativo (Solo Empresas)
-    { id: 'invoices', label: 'Emisión', icon: '📄', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'credit-notes', label: 'Notas de Crédito', icon: '🔄', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'retentions', label: 'Retenciones', icon: '💰', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'remittances', label: 'Guías de Remisión', icon: '🚚', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'settlements', label: 'Liquidaciones', icon: '📑', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'reports', label: 'Reportes y SRI', icon: '📈', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'sales-book', label: 'Libro de Ventas', icon: '📚', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'ats', label: 'ATS', icon: '📄', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'form-104', label: 'Formulario 104', icon: '💰', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'kardex', label: 'Kardex', icon: '📦', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'profitability', label: 'Rentabilidad', icon: '📈', roles: ['ADMIN', 'EMPLOYEE'] },
+    { id: 'invoices', label: 'Emisión', icon: '📄', roles: ['ADMIN', 'USER'] },
+    { id: 'credit-notes', label: 'Notas de Crédito', icon: '🔄', roles: ['ADMIN', 'USER'] },
+    { id: 'retentions', label: 'Retenciones', icon: '💰', roles: ['ADMIN'] },
+    { id: 'remittances', label: 'Guías de Remisión', icon: '🚚', roles: ['ADMIN'] },
+    { id: 'settlements', label: 'Liquidaciones', icon: '📑', roles: ['ADMIN'] },
+    { id: 'reports', label: 'Reportes y SRI', icon: '📈', roles: ['ADMIN'] },
+    { id: 'sales-book', label: 'Libro de Ventas', icon: '📚', roles: ['ADMIN'] },
+    { id: 'ats', label: 'ATS', icon: '📄', roles: ['ADMIN'] },
+    { id: 'form-104', label: 'Formulario 104', icon: '💰', roles: ['ADMIN'] },
+    { id: 'kardex', label: 'Kardex', icon: '📦', roles: ['ADMIN'] },
+    { id: 'profitability', label: 'Rentabilidad', icon: '📈', roles: ['ADMIN'] },
     
     // Común
-    { id: 'notifications', label: 'Notificaciones', icon: '📧', roles: ['ADMIN', 'EMPLOYEE', 'SUPERADMIN'] },
+    { id: 'notifications', label: 'Notificaciones', icon: '📧', roles: ['ADMIN', 'USER', 'SUPERADMIN'] },
     
     // Operativo
-    { id: 'clients', label: 'Entidades', icon: '👥', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'products', label: 'Inventario', icon: '🏷️', roles: ['ADMIN', 'EMPLOYEE'] },
-    { id: 'integrations', label: 'Integración Web', icon: '🔌', roles: ['ADMIN', 'EMPLOYEE'] },
+    { id: 'clients', label: 'Entidades', icon: '👥', roles: ['ADMIN', 'USER'] },
+    { id: 'products', label: 'Inventario', icon: '🏷️', roles: ['ADMIN'] },
+    { id: 'integrations', label: 'Integración Web', icon: '🔌', roles: ['ADMIN'] },
     
     // Configuración
+    { id: 'company-users', label: 'Equipo de Trabajo', icon: '👥', roles: ['ADMIN'] },
     { id: 'config', label: 'Perfil de Empresa', icon: '🏢', roles: ['ADMIN', 'SUPERADMIN'] },
-    { id: 'ai-assistant', label: 'Asistente IA', icon: '🤖', roles: ['ADMIN', 'EMPLOYEE', 'SUPERADMIN'] },
+    { id: 'ai-assistant', label: 'Asistente IA', icon: '🤖', roles: ['ADMIN', 'SUPERADMIN'] },
     
-    { id: 'logout_btn', label: 'Cerrar Sesión', icon: '🚪', roles: ['ADMIN', 'EMPLOYEE', 'SUPERADMIN', 'CLIENT'] },
+    { id: 'logout_btn', label: 'Cerrar Sesión', icon: '🚪', roles: ['ADMIN', 'USER', 'SUPERADMIN', 'CLIENT'] },
   ];
 
   // Filtrar menú según el rol del usuario

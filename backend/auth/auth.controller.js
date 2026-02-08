@@ -24,10 +24,12 @@ const login = async (req, res) => {
         // 3. 🔐 VALIDACIÓN DE CONTRASEÑA (HÍBRIDA)
         // Esto soporta tanto usuarios viejos (texto plano) como nuevos (encriptados)
         let passwordValida = false;
+        let requirePasswordChange = false;
 
         // A. Intento 1: ¿Coinciden como texto plano? (Ej. Dev seeds)
         if (user.password === password) {
             passwordValida = true;
+            requirePasswordChange = true;
         } 
         // B. Intento 2: ¿Coinciden usando Bcrypt? (Producción)
         else {
@@ -76,7 +78,8 @@ const login = async (req, res) => {
                 id: user.id, 
                 email: user.email, 
                 role: user.role,
-                businessId: user.businessId // ¡CRÍTICO PARA QUE FUNCIONE!
+                businessId: user.businessId, // ¡CRÍTICO PARA QUE FUNCIONE!
+                requirePasswordChange
             },
             JWT_SECRET,
             { expiresIn: '12h' }
@@ -88,12 +91,14 @@ const login = async (req, res) => {
         res.json({
             success: true,
             token,
+            requirePasswordChange,
             user: { 
                 id: user.id,
                 email: user.email, 
                 role: user.role,
                 businessId: user.businessId,
-                features: businessFeatures // Enviamos los permisos al frontend
+                features: businessFeatures, // Enviamos los permisos al frontend
+                requirePasswordChange // Incluimos la bandera en el objeto usuario para persistencia
             }
         });
 
@@ -113,7 +118,7 @@ const clientLogin = async (req, res) => {
         // Buscamos en la tabla CLIENT, no en USER
         const client = await prisma.client.findFirst({
             where: { 
-                identification: identification,
+                ruc: identification, // Usamos 'ruc' que es el campo real en la BD
             }
         });
 
@@ -144,13 +149,15 @@ const clientLogin = async (req, res) => {
                 id: client.id, 
                 email: client.email, 
                 role: 'CLIENT',
-                businessId: client.businessId 
+                businessId: client.businessId,
+                ruc: client.ruc, // Incluimos RUC para filtrar documentos
+                requirePasswordChange
             },
             JWT_SECRET,
             { expiresIn: '4h' }
         );
 
-        console.log(`✅ Login de cliente exitoso: ${client.identification}`);
+        console.log(`✅ Login de cliente exitoso: ${client.ruc}`);
 
         res.json({ 
             success: true, 
@@ -258,7 +265,7 @@ const clientForgotPassword = async (req, res) => {
         const { identification, email } = req.body;
         
         const client = await prisma.client.findFirst({
-            where: { identification, email }
+            where: { ruc: identification, email } // Usamos 'ruc' en la búsqueda
         });
 
         if (!client) {
@@ -266,8 +273,8 @@ const clientForgotPassword = async (req, res) => {
         }
 
         // Generar token temporal (usando el secreto + password actual o id si es null)
-        const secret = JWT_SECRET + (client.password || client.identification);
-        const token = jwt.sign({ id: client.id, identification: client.identification }, secret, { expiresIn: '15m' });
+        const secret = JWT_SECRET + (client.password || client.ruc);
+        const token = jwt.sign({ id: client.id, identification: client.ruc }, secret, { expiresIn: '15m' });
 
         // Link para el frontend (debes crear esta ruta en React)
         const link = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/portal/reset-password/${client.id}/${token}`;
@@ -496,7 +503,13 @@ const changeUserPassword = async (req, res) => {
         const user = await prisma.user.findUnique({ where: { id: userId } });
 
         // Validar contraseña actual
-        const isValid = await bcrypt.compare(currentPassword, user.password);
+        let isValid = false;
+        if (user.password === currentPassword) {
+            isValid = true; // Soporte para contraseña temporal (texto plano)
+        } else {
+            isValid = await bcrypt.compare(currentPassword, user.password);
+        }
+
         if (!isValid) {
             return res.status(401).json({ message: 'La contraseña actual es incorrecta.' });
         }

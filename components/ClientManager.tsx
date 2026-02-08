@@ -7,12 +7,13 @@ interface ClientManagerProps {
   setClients: React.Dispatch<React.SetStateAction<Client[]>>;
   onNotify: (msg: string, type?: any) => void;
   isDemoMode: boolean; // <--- Prop recibida correctamente
+  currentUser?: any;
 }
 
 // URL del backend
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
-const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNotify, isDemoMode }) => {
+const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNotify, isDemoMode, currentUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState<Partial<Client>>({ type: 'CLIENTE' });
@@ -92,15 +93,26 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
         'Authorization': `Bearer ${token}`
       };
 
+      const payload = {
+        ...formData,
+        email: formData.email || '',
+        address: formData.address || '',
+        phone: formData.phone || '',
+        type: formData.type || 'CLIENTE'
+      };
+
       if (editingClient) {
         // ACTUALIZAR (PUT)
         const response = await fetch(`${API_URL}/api/clients/${editingClient.id}`, {
           method: 'PUT',
           headers,
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error('Error al actualizar cliente');
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.message || err.error || 'Error al actualizar cliente');
+        }
 
         const updatedClient = await response.json();
         setClients(clients.map(c => c.id === editingClient.id ? updatedClient : c));
@@ -110,25 +122,22 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
         const response = await fetch(`${API_URL}/api/clients`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({
-            ...formData,
-            email: formData.email || '',
-            address: formData.address || '',
-            phone: formData.phone || '',
-            type: formData.type || 'CLIENTE'
-          })
+          body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error('Error al crear cliente');
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.message || err.error || 'Error al crear cliente');
+        }
 
         const newClient = await response.json();
         setClients([newClient, ...clients]);
         onNotify("Entidad guardada exitosamente");
       }
       setShowModal(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      onNotify("Error de conexión con el servidor", "error");
+      onNotify(error.message || "Error de conexión con el servidor", "error");
     } finally {
       setLoading(false);
     }
@@ -137,6 +146,12 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
   const handleDelete = async (id: string, ruc: string) => {
     if (ruc === '9999999999999') {
       onNotify("No se puede eliminar Consumidor Final", "error");
+      return;
+    }
+
+    // SEGURIDAD: Restringir eliminación para vendedores
+    if (currentUser?.role === 'USER') {
+      onNotify("Acción restringida. Se requiere permiso de Administrador.", "error");
       return;
     }
 
@@ -309,7 +324,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RUC / Cédula</label>
                   <input
                     placeholder="Ej: 1722334455001"
-                    value={formData.ruc}
+                    value={formData.ruc || ''}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
                     onChange={e => setFormData({ ...formData, ruc: e.target.value })}
                   />
@@ -330,7 +345,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Razón Social / Nombre Completo</label>
                   <input
                     placeholder="Ej: Juan Pérez o Empresa S.A."
-                    value={formData.name}
+                    value={formData.name || ''}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                   />
@@ -339,7 +354,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Correo Electrónico</label>
                   <input
                     placeholder="email@ejemplo.com"
-                    value={formData.email}
+                    value={formData.email || ''}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                   />
@@ -348,7 +363,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teléfono / WhatsApp</label>
                   <input
                     placeholder="Ej: 0998877665"
-                    value={formData.phone}
+                    value={formData.phone || ''}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                   />
@@ -357,7 +372,7 @@ const ClientManager: React.FC<ClientManagerProps> = ({ clients, setClients, onNo
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Dirección Completa</label>
                   <input
                     placeholder="Ej: Av. Amazonas y República, Quito"
-                    value={formData.address}
+                    value={formData.address || ''}
                     className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
                     onChange={e => setFormData({ ...formData, address: e.target.value })}
                   />
