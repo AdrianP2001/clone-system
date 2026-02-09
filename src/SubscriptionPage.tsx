@@ -25,7 +25,7 @@ const SubscriptionPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'PAYPAL' | 'TRANSFER'>('PAYPAL');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [formData, setFormData] = useState<RegisterData>({
     businessName: '',
     ruc: '',
@@ -66,7 +66,7 @@ const SubscriptionPage: React.FC = () => {
     try {
 
       const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-const response = await fetch(`${API_URL}/api/register`, {
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -103,7 +103,7 @@ const response = await fetch(`${API_URL}/api/register`, {
     const url = `https://wa.me/593999999999?text=${encodeURIComponent(message)}`; // Reemplaza con tu número
     window.open(url, '_blank');
     // Opcional: Registrar como pendiente o esperar confirmación manual
-    handleRegister(); 
+    handleRegister();
   };
 
   return (
@@ -134,7 +134,7 @@ const response = await fetch(`${API_URL}/api/register`, {
       {/* Main Content */}
       <main className="flex flex-1 justify-center py-12 px-6 lg:px-40">
         <div className="max-w-[1100px] w-full flex flex-col gap-12">
-          
+
           {step === 'plans' ? (
             <>
               {/* Header Text */}
@@ -159,7 +159,7 @@ const response = await fetch(`${API_URL}/api/register`, {
                     </div>
                     <p className="text-slate-500 text-sm mt-2 leading-relaxed">Ideal para emprendedores y pequeños negocios que inician.</p>
                   </div>
-                  <hr className="border-slate-100 dark:border-slate-800"/>
+                  <hr className="border-slate-100 dark:border-slate-800" />
                   <div className="flex flex-col gap-4 flex-grow">
                     {['Facturación Ilimitada', 'Soporte 24/7 vía Chat', 'Almacenamiento en la Nube', 'Firma Electrónica Incluida'].map((feat, i) => (
                       <div key={i} className="flex items-center gap-3 text-slate-700 dark:text-slate-300 text-sm">
@@ -186,7 +186,7 @@ const response = await fetch(`${API_URL}/api/register`, {
                     </div>
                     <p className="text-[#135bec]/80 text-sm font-semibold mt-2">Ahorra un 33% comparado al plan mensual.</p>
                   </div>
-                  <hr className="border-slate-100 dark:border-slate-800"/>
+                  <hr className="border-slate-100 dark:border-slate-800" />
                   <div className="flex flex-col gap-4 flex-grow">
                     {['Facturación Ilimitada Premium', 'Soporte Prioritario 24/7', '5GB Almacenamiento Seguro', 'Gestión de Inventario Web', 'App Móvil Completa'].map((feat, i) => (
                       <div key={i} className="flex items-center gap-3 text-slate-700 dark:text-slate-300 text-sm font-medium">
@@ -210,7 +210,7 @@ const response = await fetch(`${API_URL}/api/register`, {
                     </div>
                     <p className="text-slate-500 text-sm mt-2 leading-relaxed">Flexibilidad y control para negocios en crecimiento.</p>
                   </div>
-                  <hr className="border-slate-100 dark:border-slate-800"/>
+                  <hr className="border-slate-100 dark:border-slate-800" />
                   <div className="flex flex-col gap-4 flex-grow">
                     {['Facturación Ilimitada', 'Soporte 24/7 vía Chat', 'Almacenamiento en la Nube', 'Firma Electrónica Incluida'].map((feat, i) => (
                       <div key={i} className="flex items-center gap-3 text-slate-700 dark:text-slate-300 text-sm">
@@ -241,9 +241,9 @@ const response = await fetch(`${API_URL}/api/register`, {
                 <div className="flex justify-center items-center gap-6 mt-4 opacity-60 flex-wrap">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Aceptamos:</span>
                   <div className="flex gap-4 items-center grayscale">
-                    <img alt="PayPal" className="h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgY_uKrF4r9IIIemXjN0rV_VCF9nfY4-bobqcfhmUsyGmTxRqpHaoL0TjaWKiV_ZpYbKXwrzpoxpZ1Zy-btK6Lh35lq-pxVgRfM3zDf7cUSN9T-LrsbQeiBjpebvM2W0AmRkTzgVl5o49RUxxCA2LEbAa0oP1qDJuXaYKRRTRdf16DDK1WMR7qKdpDIHyREKDM-UFFxIUfa9P--HY4WrCFwjt0-FY9ROIdxmDV7D1g1ih0_xuWakWix4QNfnViMbL4MOFRt_blJgs"/>
-                    <img alt="Visa" className="h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUmRQquXFMTDsqpof-qCuy0ple9Y0BvSM7nQnigfZzT94kavm4y5xMl4PQncz952Ehlkv2_dwTexCPOdQ7zqacKfpCsLjtaTHiJeX1xThqDrjTPLCzIoJvskoNPZNc_AaVuCyIcuzhMaV0Due_ZceTcmlklNsD8OM6sjIrMsfVMgpLJG-wy5_GeARdS5_U1aaGl0zmSNk7RCZkWdXay_au2yZZbWfdTe36KZFa5As-M1qCf8lcqbcakEu-RqCcnebq49HSIpvNM2s"/>
-                    <img alt="Mastercard" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmJfNbJqAwDYRwXL9fSKXS_5UukcGgGUawaey18zINdrnGMKBqW5HBTK05MuDa4dh1b8HQtx1vFNwRw_kq0DWs_1OwigP1p_L0c46RwA6QSmUhmXm5ItTsG39bMQRzSw7mS55rOKEks-IqAHVB_RVKNbKfb_-HS_i5XygOpkFF8ONeAWN_ULN7QLfCEzqUIYTTx9I3eIy-LE2dWlAXyapu4vhRX-MvBrwY21gFVRANRxIonXxhRUXj14IChDm5vfBRBz7_xTcEZnA"/>
+                    <img alt="PayPal" className="h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgY_uKrF4r9IIIemXjN0rV_VCF9nfY4-bobqcfhmUsyGmTxRqpHaoL0TjaWKiV_ZpYbKXwrzpoxpZ1Zy-btK6Lh35lq-pxVgRfM3zDf7cUSN9T-LrsbQeiBjpebvM2W0AmRkTzgVl5o49RUxxCA2LEbAa0oP1qDJuXaYKRRTRdf16DDK1WMR7qKdpDIHyREKDM-UFFxIUfa9P--HY4WrCFwjt0-FY9ROIdxmDV7D1g1ih0_xuWakWix4QNfnViMbL4MOFRt_blJgs" />
+                    <img alt="Visa" className="h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUmRQquXFMTDsqpof-qCuy0ple9Y0BvSM7nQnigfZzT94kavm4y5xMl4PQncz952Ehlkv2_dwTexCPOdQ7zqacKfpCsLjtaTHiJeX1xThqDrjTPLCzIoJvskoNPZNc_AaVuCyIcuzhMaV0Due_ZceTcmlklNsD8OM6sjIrMsfVMgpLJG-wy5_GeARdS5_U1aaGl0zmSNk7RCZkWdXay_au2yZZbWfdTe36KZFa5As-M1qCf8lcqbcakEu-RqCcnebq49HSIpvNM2s" />
+                    <img alt="Mastercard" className="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmJfNbJqAwDYRwXL9fSKXS_5UukcGgGUawaey18zINdrnGMKBqW5HBTK05MuDa4dh1b8HQtx1vFNwRw_kq0DWs_1OwigP1p_L0c46RwA6QSmUhmXm5ItTsG39bMQRzSw7mS55rOKEks-IqAHVB_RVKNbKfb_-HS_i5XygOpkFF8ONeAWN_ULN7QLfCEzqUIYTTx9I3eIy-LE2dWlAXyapu4vhRX-MvBrwY21gFVRANRxIonXxhRUXj14IChDm5vfBRBz7_xTcEZnA" />
                   </div>
                 </div>
               </div>
@@ -267,11 +267,10 @@ const response = await fetch(`${API_URL}/api/register`, {
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">RUC</label>
-                    <input name="ruc" value={formData.ruc} onChange={handleInputChange} 
-                      className={`w-full rounded-lg border bg-slate-50 dark:bg-slate-800 p-3 text-sm focus:ring-[#135bec] ${
-                        formData.ruc && !isValidRuc(formData.ruc) ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'
-                      }`}
-                      placeholder="179..." maxLength={13} 
+                    <input name="ruc" value={formData.ruc} onChange={handleInputChange}
+                      className={`w-full rounded-lg border bg-slate-50 dark:bg-slate-800 p-3 text-sm focus:ring-[#135bec] ${formData.ruc && !isValidRuc(formData.ruc) ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'
+                        }`}
+                      placeholder="179..." maxLength={13}
                     />
                   </div>
                   <div>
@@ -289,15 +288,14 @@ const response = await fetch(`${API_URL}/api/register`, {
                   <div className="col-span-2">
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Contraseña</label>
                     <div className="relative">
-                      <input 
-                        name="password" 
-                        type={showPassword ? "text" : "password"} 
-                        value={formData.password} 
-                        onChange={handleInputChange} 
-                        className={`w-full rounded-lg border bg-slate-50 dark:bg-slate-800 p-3 text-sm focus:ring-[#135bec] pr-10 ${
-                          formData.password && !isValidPassword(formData.password) ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'
-                        }`}
-                        placeholder="********" 
+                      <input
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className={`w-full rounded-lg border bg-slate-50 dark:bg-slate-800 p-3 text-sm focus:ring-[#135bec] pr-10 ${formData.password && !isValidPassword(formData.password) ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'
+                          }`}
+                        placeholder="********"
                       />
                       <button
                         type="button"
@@ -314,7 +312,7 @@ const response = await fetch(`${API_URL}/api/register`, {
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Método de Pago</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div 
+                    <div
                       onClick={() => setPaymentMethod('PAYPAL')}
                       className={`cursor-pointer flex items-center gap-3 p-4 rounded-xl border transition-all ${paymentMethod === 'PAYPAL' ? 'border-[#135bec] bg-[#135bec]/5' : 'border-slate-200 dark:border-slate-800'}`}
                     >
@@ -324,7 +322,7 @@ const response = await fetch(`${API_URL}/api/register`, {
                         <p className="text-xs text-slate-500">Activación inmediata</p>
                       </div>
                     </div>
-                    <div 
+                    <div
                       onClick={() => setPaymentMethod('TRANSFER')}
                       className={`cursor-pointer flex items-center gap-3 p-4 rounded-xl border transition-all ${paymentMethod === 'TRANSFER' ? 'border-[#135bec] bg-[#135bec]/5' : 'border-slate-200 dark:border-slate-800'}`}
                     >
@@ -367,14 +365,13 @@ const response = await fetch(`${API_URL}/api/register`, {
                     )}
                   </div>
                 ) : (
-                  <button 
+                  <button
                     onClick={handleWhatsAppTransfer}
                     disabled={loading || !isFormValid}
-                    className={`w-full flex items-center justify-center gap-2 rounded-xl h-12 font-bold transition-colors ${
-                      loading || !isFormValid 
-                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed' 
+                    className={`w-full flex items-center justify-center gap-2 rounded-xl h-12 font-bold transition-colors ${loading || !isFormValid
+                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                         : 'bg-[#25D366] text-white hover:bg-[#20bd5a]'
-                    }`}
+                      }`}
                   >
                     {loading ? 'Procesando...' : 'Finalizar en WhatsApp'}
                   </button>
@@ -397,7 +394,7 @@ const response = await fetch(`${API_URL}/api/register`, {
                       ${selectedPlan === 'MONTHLY' ? '15.00' : selectedPlan === 'SEMIANNUAL' ? '75.00' : '120.00'}
                     </span>
                   </div>
-                  <hr className="border-slate-200 dark:border-slate-700 mb-4"/>
+                  <hr className="border-slate-200 dark:border-slate-700 mb-4" />
                   <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white">
                     <span>Total</span>
                     <span>${selectedPlan === 'MONTHLY' ? '15.00' : selectedPlan === 'SEMIANNUAL' ? '75.00' : '120.00'}</span>
@@ -421,11 +418,10 @@ const response = await fetch(`${API_URL}/api/register`, {
       {/* Toast Notifications */}
       <div className="fixed bottom-6 right-6 z-[999] flex flex-col gap-3 pointer-events-none">
         {toasts.map((toast) => (
-          <div 
-            key={toast.id} 
-            className={`pointer-events-auto min-w-[320px] p-6 rounded-[2.5rem] shadow-2xl backdrop-blur-xl border animate-in slide-in-from-right-10 flex items-start gap-4 text-white ${
-              toast.type === 'error' ? 'bg-red-500/90 border-red-500/50' : 'bg-[#135bec]/90 border-[#135bec]/50'
-            }`}
+          <div
+            key={toast.id}
+            className={`pointer-events-auto min-w-[320px] p-6 rounded-[2.5rem] shadow-2xl backdrop-blur-xl border animate-in slide-in-from-right-10 flex items-start gap-4 text-white ${toast.type === 'error' ? 'bg-red-500/90 border-red-500/50' : 'bg-[#135bec]/90 border-[#135bec]/50'
+              }`}
           >
             <span className="text-2xl">{toast.type === 'success' ? '✅' : toast.type === 'error' ? '❌' : 'ℹ️'}</span>
             <p className="font-black text-sm leading-tight mt-1">{toast.text}</p>

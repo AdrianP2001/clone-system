@@ -40,6 +40,8 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
+console.log('🛡️ CORS Allowed Origins:', allowedOrigins);
+
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
@@ -94,7 +96,8 @@ app.put('/api/user/password', verifyToken, authController.changeUserPassword);
 const authenticate = (req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     const apiKey = req.headers['x-api-key'];
-    if (!apiKey || apiKey !== process.env.API_KEY) {
+    const validApiKey = process.env.API_KEY || process.env.VITE_API_KEY; // Aceptamos ambos nombres
+    if (!apiKey || !validApiKey || apiKey !== validApiKey) {
       return res.status(401).json({
         success: false,
         error: 'No autorizado - API Key inválida'

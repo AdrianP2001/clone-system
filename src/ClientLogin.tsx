@@ -16,8 +16,8 @@ const ClientLogin = () => {
     try {
       // Conectamos con el endpoint específico para clientes que creamos antes
 
-   const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-   const response = await fetch(`${API_URL}/api/auth/client/login`, {
+      const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_URL}/api/auth/client/login`, {
 
         method: 'POST',
         headers: {
@@ -32,14 +32,14 @@ const ClientLogin = () => {
         // Guardamos el token y redirigimos
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        
+
         // Guardar flag si el backend lo pide (para forzar cambio de contraseña)
         if (data.requirePasswordChange) {
-            localStorage.setItem('requirePasswordChange', 'true');
+          localStorage.setItem('requirePasswordChange', 'true');
         }
 
         // Redirigir al dashboard del cliente (ajusta la ruta según tu router)
-        window.location.href = '/portal/dashboard'; 
+        window.location.href = '/portal/dashboard';
       } else {
         setError(data.message || 'Credenciales incorrectas. Verifique su Cédula/RUC.');
       }
@@ -66,7 +66,7 @@ const ClientLogin = () => {
       <div className="bg-[#f6f6f8] dark:bg-[#101622] font-display min-h-screen flex flex-col">
         <div className="relative flex h-auto min-h-screen w-full flex-col bg-[linear-gradient(135deg,#f0f4ff_0%,#e0e7ff_100%)] dark:bg-[linear-gradient(135deg,#101622_0%,#1a2333_100%)] group/design-root overflow-x-hidden">
           <div className="layout-container flex h-full grow flex-col">
-            
+
             {/* Header */}
             <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#135bec]/10 bg-white/80 dark:bg-[#101622]/80 backdrop-blur-md px-10 py-3 sticky top-0 z-50">
               <div className="flex items-center gap-4 text-[#135bec]">
@@ -94,7 +94,7 @@ const ClientLogin = () => {
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800">
-                  
+
                   {/* Mensaje de Error */}
                   {error && (
                     <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center gap-2" role="alert">
@@ -110,9 +110,9 @@ const ClientLogin = () => {
                         <div className="text-slate-400 flex border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 items-center justify-center pl-4 rounded-l-lg border-r-0">
                           <span className="material-symbols-outlined text-xl">badge</span>
                         </div>
-                        <input 
-                          className="form-input flex w-full min-w-0 flex-1 rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-[#135bec]/20 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-[#135bec] h-12 placeholder:text-slate-400 p-3 text-base font-normal" 
-                          placeholder="Ej: 1712345678" 
+                        <input
+                          className="form-input flex w-full min-w-0 flex-1 rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-[#135bec]/20 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-[#135bec] h-12 placeholder:text-slate-400 p-3 text-base font-normal"
+                          placeholder="Ej: 1712345678"
                           type="text"
                           value={identification}
                           onChange={(e) => setIdentification(e.target.value)}
@@ -131,9 +131,9 @@ const ClientLogin = () => {
                           <span className="material-symbols-outlined text-xl">lock</span>
                         </div>
                         <div className="relative flex-1">
-                          <input 
-                            className="form-input w-full rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-[#135bec]/20 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-[#135bec] h-12 placeholder:text-slate-400 p-3 text-base font-normal pr-10" 
-                            placeholder="••••••••" 
+                          <input
+                            className="form-input w-full rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-[#135bec]/20 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-[#135bec] h-12 placeholder:text-slate-400 p-3 text-base font-normal pr-10"
+                            placeholder="••••••••"
                             type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -150,8 +150,8 @@ const ClientLogin = () => {
                       </div>
                     </div>
 
-                    <button 
-                      className="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#135bec] text-white text-base font-bold shadow-lg shadow-[#135bec]/20 hover:bg-[#135bec]/90 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed" 
+                    <button
+                      className="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#135bec] text-white text-base font-bold shadow-lg shadow-[#135bec]/20 hover:bg-[#135bec]/90 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                       type="submit"
                       disabled={loading}
                     >
@@ -161,7 +161,7 @@ const ClientLogin = () => {
 
                   <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col items-center gap-4">
                     <p className="text-slate-500 dark:text-slate-400 text-sm">
-                      ¿Problemas para ingresar? 
+                      ¿Problemas para ingresar?
                       <a className="text-[#135bec] font-bold hover:underline ml-1" href="#">Contactar Soporte</a>
                     </p>
                     <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700">
