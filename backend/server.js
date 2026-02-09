@@ -33,8 +33,29 @@ app.use(helmet());
 app.use(morgan('combined'));
 
 // CORS
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://sistemasaas.up.railway.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    
+    // Fix para cuando la variable de entorno viene sin https://
+    if (process.env.FRONTEND_URL && origin === `https://${process.env.FRONTEND_URL}`) {
+      return callback(null, true);
+    }
+
+    console.log('🚫 Bloqueado por CORS:', origin);
+    callback(new Error('No permitido por CORS'));
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
