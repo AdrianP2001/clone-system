@@ -15,7 +15,10 @@ const ClientLogin = () => {
 
     try {
       // Conectamos con el endpoint específico para clientes que creamos antes
-      const response = await fetch('http://localhost:3001/api/auth/client/login', {
+
+   const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+   const response = await fetch(`${API_URL}/api/auth/client/login`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
