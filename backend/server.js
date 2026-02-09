@@ -1889,6 +1889,10 @@ app.post('/api/ai/insights', verifyToken, async (req, res) => {
   //});
 //}
 
+app.get('/', (req, res) => {
+  res.status(200).send('✅ Backend funcionando OK 🚀');
+});
+
 // Manejo de rutas no encontradas
 app.use('*', (req, res) => {
   res.status(404).json({
