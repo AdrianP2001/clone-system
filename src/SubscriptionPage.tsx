@@ -64,7 +64,9 @@ const SubscriptionPage: React.FC = () => {
   const handleRegister = async (paymentId?: string) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/register', {
+
+      const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
